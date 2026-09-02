@@ -1,0 +1,6 @@
+{
+  "name": "Daewoo",
+  "description": "Dinamik jadvallar yaratish, ma'lumotlar qo'shish va avtomatik analitik dashboardlar platformasi",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

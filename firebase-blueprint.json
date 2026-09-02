@@ -1,0 +1,21 @@
+{
+  "entities": {
+    "tables": {
+      "title": "Jadvallar",
+      "description": "Foydalanuvchi yaratgan dinamik jadvallar va ularning qatorlari",
+      "properties": {
+        "id": { "type": "string", "description": "Jadvalning unikal ID si" },
+        "name": { "type": "string", "description": "Jadval nomi" },
+        "columns": { "type": "array", "description": "Jadval ustunlari ro'yxati" },
+        "rows": { "type": "array", "description": "Jadval qatorlari va qiymatlari" },
+        "createdAt": { "type": "string", "description": "Yaratilgan vaqti" },
+        "updatedAt": { "type": "string", "description": "Oxirgi yangilangan vaqti" }
+      },
+      "required": ["id", "name", "columns", "rows"]
+    }
+  },
+  "auth": {
+    "providers": ["anonymous", "password"]
+  },
+  "firestoreRules": "rules_version = '2';\nservice cloud.firestore {\n  match /databases/{database}/documents {\n    match /tables/{tableId} {\n      allow read, write: if true;\n    }\n  }\n}"
+}
