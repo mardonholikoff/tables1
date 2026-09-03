@@ -3,9 +3,6 @@ import {
   TrendingUp,
   TrendingDown,
   Activity,
-  Calendar,
-  Layers,
-  Sparkles,
 } from 'lucide-react';
 import {
   LineChart,
@@ -27,7 +24,6 @@ interface DynamicsTrendChartProps {
 
 export const DynamicsTrendChart: React.FC<DynamicsTrendChartProps> = ({
   table,
-  filteredRowsCount,
 }) => {
   // Find all numeric columns
   const numericColumns = table.columns.filter((col) => {
@@ -74,33 +70,29 @@ export const DynamicsTrendChart: React.FC<DynamicsTrendChartProps> = ({
   if (trendData.length === 0) return null;
 
   return (
-    <div className="p-5 bg-slate-900 border border-slate-800 rounded-2xl shadow-lg">
+    <div className="p-5 bg-white border border-sky-200 rounded-2xl shadow-sm font-mono text-sky-950">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
         <div>
           <div className="flex items-center gap-2">
-            <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-              <Activity className="w-4 h-4 text-emerald-400" />
+            <h4 className="text-xs font-bold text-sky-950 uppercase tracking-wider flex items-center gap-1.5 font-mono">
+              <Activity className="w-4 h-4 text-sky-700" />
               <span>Yozuvlar Ketma-ketligi va Dinamika Tahlili</span>
             </h4>
             {deltaPercent !== null && (
               <span
-                className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 ${
-                  isPositiveDelta
-                    ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
-                    : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                }`}
+                className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full flex items-center gap-1 bg-sky-100 text-sky-900 border border-sky-300"
               >
                 {isPositiveDelta ? (
-                  <TrendingUp className="w-3 h-3" />
+                  <TrendingUp className="w-3 h-3 text-emerald-700" />
                 ) : (
-                  <TrendingDown className="w-3 h-3" />
+                  <TrendingDown className="w-3 h-3 text-red-600" />
                 )}
                 {isPositiveDelta ? '+' : ''}
                 {deltaPercent}% umumiy dinamika
               </span>
             )}
           </div>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px] text-sky-900 font-mono font-medium">
             Kiritilgan {trendData.length} ta yozuvning vaqt/tartib bo'yicha rivojlanish traektoriyasi
           </p>
         </div>
@@ -113,24 +105,25 @@ export const DynamicsTrendChart: React.FC<DynamicsTrendChartProps> = ({
               data={trendData}
               margin={{ top: 10, right: 15, left: -10, bottom: 20 }}
             >
-              <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.4} />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e0f2fe" opacity={0.8} />
               <XAxis
                 dataKey="name"
-                stroke="#94a3b8"
+                stroke="#0369a1"
                 fontSize={10}
                 tickLine={false}
               />
-              <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} />
+              <YAxis stroke="#0369a1" fontSize={10} tickLine={false} />
               <Tooltip
                 contentStyle={{
-                  backgroundColor: '#0f172a',
-                  borderColor: '#334155',
+                  backgroundColor: '#ffffff',
+                  borderColor: '#bae6fd',
                   borderRadius: '0.75rem',
-                  color: '#fff',
+                  color: '#082f49',
                   fontSize: '12px',
+                  boxShadow: '0 4px 6px -1px rgba(2, 132, 199, 0.1)',
                 }}
               />
-              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+              <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px', color: '#082f49' }} />
               {numericColumns.map((col, idx) => (
                 <Line
                   key={col.key}
@@ -146,9 +139,9 @@ export const DynamicsTrendChart: React.FC<DynamicsTrendChartProps> = ({
           </ResponsiveContainer>
         </div>
       ) : (
-        <div className="h-48 flex flex-col items-center justify-center text-center p-4 bg-slate-950/40 rounded-xl border border-slate-800">
-          <Activity className="w-6 h-6 text-slate-500 mb-2" />
-          <p className="text-xs text-slate-400">
+        <div className="h-48 flex flex-col items-center justify-center text-center p-4 bg-sky-50 rounded-xl border border-sky-200">
+          <Activity className="w-6 h-6 text-sky-600 mb-2" />
+          <p className="text-xs text-sky-950 font-mono font-medium">
             Dinamika chizig'ini qurish uchun jadvalda kamida bitta raqamli ustun (masalan, Narx, Miqdor, Ball) bo'lishi lozim.
           </p>
         </div>

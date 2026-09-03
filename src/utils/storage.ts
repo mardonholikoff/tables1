@@ -64,6 +64,16 @@ export function saveSavedInstruments(instruments: string[]): void {
   }
 }
 
+export function getFormattedDateTime(date: Date = new Date()): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${day}.${month}.${year} ${hours}:${minutes}:${seconds}`;
+}
+
 export function generateSampleData(): UserTable {
   const tableId = 'sample_' + Date.now();
   return {
@@ -73,37 +83,39 @@ export function generateSampleData(): UserTable {
     updatedAt: new Date().toISOString(),
     themeColor: 'blue',
     columns: [
-      { id: 'c1', key: 'c1', name: 'Mahsulot nomi' },
-      { id: 'c2', key: 'c2', name: 'Kategoriya' },
-      { id: 'c3', key: 'c3', name: 'Narxi ($)' },
-      { id: 'c4', key: 'c4', name: 'Sotilgan miqdori (dona)' },
-      { id: 'c5', key: 'c5', name: 'Holati' },
+      { id: 'c1', key: 'c1', name: '№' },
+      { id: 'c2', key: 'c2', name: 'Sana va vaqt' },
+      { id: 'c3', key: 'c3', name: 'Mahsulot nomi' },
+      { id: 'c4', key: 'c4', name: 'Kategoriya' },
+      { id: 'c5', key: 'c5', name: 'Narxi ($)' },
+      { id: 'c6', key: 'c6', name: 'Sotilgan miqdori (dona)' },
+      { id: 'c7', key: 'c7', name: 'Holati' },
     ],
     rows: [
       {
         id: 'r1',
         createdAt: new Date(Date.now() - 3600000 * 24 * 4).toISOString(),
-        values: { c1: 'Dvigatel moyi 5W-30', c2: 'Moylar', c3: '35', c4: '120', c5: 'Mavjud' },
+        values: { c1: '1', c2: '28.08.2026 10:15:00', c3: 'Dvigatel moyi 5W-30', c4: 'Moylar', c5: '35', c6: '120', c7: 'Mavjud' },
       },
       {
         id: 'r2',
         createdAt: new Date(Date.now() - 3600000 * 24 * 3).toISOString(),
-        values: { c1: 'Tormoz kolodkasi (Old)', c2: 'Tormoz tizimi', c3: '28', c4: '85', c5: 'Mavjud' },
+        values: { c1: '2', c2: '29.08.2026 14:22:30', c3: 'Tormoz kolodkasi (Old)', c4: 'Tormoz tizimi', c5: '28', c6: '85', c7: 'Mavjud' },
       },
       {
         id: 'r3',
         createdAt: new Date(Date.now() - 3600000 * 24 * 2).toISOString(),
-        values: { c1: 'Havo filtri Nexia/Cobalt', c2: 'Filtrlar', c3: '12', c4: '210', c5: 'Kamyob' },
+        values: { c1: '3', c2: '30.08.2026 09:05:12', c3: 'Havo filtri Nexia/Cobalt', c4: 'Filtrlar', c5: '12', c6: '210', c7: 'Kamyob' },
       },
       {
         id: 'r4',
         createdAt: new Date(Date.now() - 3600000 * 24 * 1).toISOString(),
-        values: { c1: 'Shamdonlar to\'plami (Spark)', c2: 'Elektr', c3: '18', c4: '140', c5: 'Mavjud' },
+        values: { c1: '4', c2: '31.08.2026 16:40:55', c3: 'Shamdonlar to\'plami (Spark)', c4: 'Elektr', c5: '18', c6: '140', c7: 'Mavjud' },
       },
       {
         id: 'r5',
         createdAt: new Date().toISOString(),
-        values: { c1: 'Amortizator (Gentra)', c2: 'Podveska', c3: '65', c4: '45', c5: 'Buyurtmada' },
+        values: { c1: '5', c2: '01.09.2026 11:30:18', c3: 'Amortizator (Gentra)', c4: 'Podveska', c5: '65', c6: '45', c7: 'Buyurtmada' },
       },
     ],
   };

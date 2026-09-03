@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Trophy, ArrowUpRight, ArrowDownRight, Award, Layers } from 'lucide-react';
+import { Trophy, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { UserTable } from '../types';
 
 interface TopBottomRankingViewProps {
@@ -53,30 +53,30 @@ export const TopBottomRankingView: React.FC<TopBottomRankingViewProps> = ({
   const maxVal = topRows[0]?.num || 1;
 
   return (
-    <div className="p-5 bg-slate-900 border border-slate-800 rounded-2xl shadow-lg space-y-4">
+    <div className="p-5 bg-white border border-sky-200 rounded-2xl shadow-sm space-y-4 font-mono text-sky-950">
       {/* Header & Column Switcher */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-            <Trophy className="w-4 h-4 text-amber-400" />
+          <h4 className="text-xs font-bold text-sky-950 uppercase tracking-wider flex items-center gap-1.5 font-mono">
+            <Trophy className="w-4 h-4 text-sky-700" />
             <span>Ekstremumlar va Reyting (Top & Bottom 5)</span>
           </h4>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px] text-sky-900 font-mono font-medium">
             Tanlangan ustun bo'yicha eng yuqori va eng quyi ko'rsatkichli yozuvlar
           </p>
         </div>
 
         {numericColumns.length > 1 && (
           <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
-            <span className="text-[11px] text-slate-400 shrink-0">Ustun:</span>
+            <span className="text-[11px] text-sky-900 shrink-0 font-mono font-bold">Ustun:</span>
             {numericColumns.map((c) => (
               <button
                 key={c.key}
                 onClick={() => setActiveColumnKey(c.key)}
-                className={`px-2.5 py-1 rounded-lg text-xs font-medium transition cursor-pointer border ${
+                className={`px-2.5 py-1 rounded-lg text-xs font-mono transition cursor-pointer border ${
                   activeColumnKey === c.key
-                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/40 font-bold'
-                    : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+                    ? 'bg-sky-600 text-white border-sky-700 font-bold shadow-xs'
+                    : 'bg-white text-sky-900 border-sky-200 hover:bg-sky-50'
                 }`}
               >
                 {c.name}
@@ -89,45 +89,43 @@ export const TopBottomRankingView: React.FC<TopBottomRankingViewProps> = ({
       {/* Top 5 & Bottom 5 Grids */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {/* Top 5 Box */}
-        <div className="p-4 bg-slate-950/60 border border-emerald-900/30 rounded-2xl space-y-2.5">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <span className="text-xs font-bold text-emerald-400 flex items-center gap-1.5">
-              <ArrowUpRight className="w-4 h-4" />
+        <div className="p-4 bg-sky-50 border border-sky-200 rounded-2xl space-y-2.5">
+          <div className="flex items-center justify-between pb-2 border-b border-sky-200">
+            <span className="text-xs font-bold text-sky-950 flex items-center gap-1.5 font-mono">
+              <ArrowUpRight className="w-4 h-4 text-emerald-700" />
               Eng Yuqori 5 ta Yozuv (Top 5)
             </span>
-            <span className="text-[10px] text-slate-400">Maksimal qiymatlar</span>
+            <span className="text-[10px] text-sky-900 font-mono font-medium">Maksimal qiymatlar</span>
           </div>
 
           <div className="space-y-2">
-            {topRows.map((item, idx) => {
-              const widthPercent = maxVal > 0 ? Math.max(8, (item.num / maxVal) * 100) : 10;
+            {topRows.map((item, index) => {
+              const barWidth = maxVal > 0 ? Math.max(5, (item.num / maxVal) * 100) : 0;
               return (
                 <div
-                  key={`top-${item.row.id}`}
+                  key={item.row.id}
                   onClick={() =>
                     onInspectCell &&
                     onInspectCell(selectedCol.key, selectedCol.name, item.displayVal)
                   }
-                  className="p-2 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 rounded-xl transition cursor-pointer"
+                  className="p-2 bg-white rounded-xl border border-sky-200 hover:border-sky-400 transition cursor-pointer space-y-1 shadow-xs"
                 >
-                  <div className="flex items-center justify-between text-xs mb-1">
+                  <div className="flex items-center justify-between text-xs font-mono">
                     <div className="flex items-center gap-2 truncate">
-                      <span className="w-5 h-5 rounded-md bg-emerald-500/20 text-emerald-300 font-bold text-[10px] flex items-center justify-center font-mono">
-                        #{idx + 1}
+                      <span className="w-5 h-5 rounded-md bg-emerald-100 text-emerald-900 border border-emerald-300 font-bold flex items-center justify-center text-[10px] shrink-0">
+                        #{index + 1}
                       </span>
-                      <span className="text-slate-200 font-medium truncate">
-                        {item.label}
-                      </span>
+                      <span className="font-bold text-sky-950 truncate">{item.label}</span>
                     </div>
-                    <span className="font-mono font-bold text-emerald-400 text-xs">
+                    <span className="font-bold text-sky-950 font-mono shrink-0">
                       {item.displayVal}
                     </span>
                   </div>
                   {/* Progress bar */}
-                  <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                  <div className="h-1.5 w-full bg-sky-100 rounded-full overflow-hidden">
                     <div
-                      className="bg-emerald-500 h-1.5 rounded-full transition-all duration-500"
-                      style={{ width: `${widthPercent}%` }}
+                      className="h-full bg-emerald-600 rounded-full transition-all duration-300"
+                      style={{ width: `${barWidth}%` }}
                     />
                   </div>
                 </div>
@@ -137,46 +135,36 @@ export const TopBottomRankingView: React.FC<TopBottomRankingViewProps> = ({
         </div>
 
         {/* Bottom 5 Box */}
-        <div className="p-4 bg-slate-950/60 border border-rose-900/30 rounded-2xl space-y-2.5">
-          <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-            <span className="text-xs font-bold text-rose-400 flex items-center gap-1.5">
-              <ArrowDownRight className="w-4 h-4" />
+        <div className="p-4 bg-sky-50 border border-sky-200 rounded-2xl space-y-2.5">
+          <div className="flex items-center justify-between pb-2 border-b border-sky-200">
+            <span className="text-xs font-bold text-sky-950 flex items-center gap-1.5 font-mono">
+              <ArrowDownRight className="w-4 h-4 text-red-600" />
               Eng Quyi 5 ta Yozuv (Bottom 5)
             </span>
-            <span className="text-[10px] text-slate-400">Minimal qiymatlar</span>
+            <span className="text-[10px] text-sky-900 font-mono font-medium">Minimal qiymatlar</span>
           </div>
 
           <div className="space-y-2">
-            {bottomRows.map((item, idx) => {
-              const widthPercent = maxVal > 0 ? Math.max(8, (item.num / maxVal) * 100) : 10;
+            {bottomRows.map((item, index) => {
               return (
                 <div
-                  key={`bot-${item.row.id}`}
+                  key={item.row.id}
                   onClick={() =>
                     onInspectCell &&
                     onInspectCell(selectedCol.key, selectedCol.name, item.displayVal)
                   }
-                  className="p-2 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 rounded-xl transition cursor-pointer"
+                  className="p-2 bg-white rounded-xl border border-sky-200 hover:border-sky-400 transition cursor-pointer space-y-1 shadow-xs"
                 >
-                  <div className="flex items-center justify-between text-xs mb-1">
+                  <div className="flex items-center justify-between text-xs font-mono">
                     <div className="flex items-center gap-2 truncate">
-                      <span className="w-5 h-5 rounded-md bg-rose-500/20 text-rose-300 font-bold text-[10px] flex items-center justify-center font-mono">
-                        #{idx + 1}
+                      <span className="w-5 h-5 rounded-md bg-red-100 text-red-900 border border-red-300 font-bold flex items-center justify-center text-[10px] shrink-0">
+                        #{parsedRows.length - index}
                       </span>
-                      <span className="text-slate-200 font-medium truncate">
-                        {item.label}
-                      </span>
+                      <span className="font-bold text-sky-950 truncate">{item.label}</span>
                     </div>
-                    <span className="font-mono font-bold text-rose-400 text-xs">
+                    <span className="font-bold text-sky-950 font-mono shrink-0">
                       {item.displayVal}
                     </span>
-                  </div>
-                  {/* Progress bar */}
-                  <div className="w-full bg-slate-800 rounded-full h-1.5 overflow-hidden">
-                    <div
-                      className="bg-rose-500 h-1.5 rounded-full transition-all duration-500"
-                      style={{ width: `${widthPercent}%` }}
-                    />
                   </div>
                 </div>
               );

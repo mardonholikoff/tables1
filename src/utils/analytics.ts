@@ -279,12 +279,14 @@ export const DEFAULT_SELECTED_INSTRUMENTS = [
 ];
 
 export const CHART_COLORS = [
-  '#3b82f6', // blue
-  '#10b981', // emerald
-  '#8b5cf6', // violet
-  '#f59e0b', // amber
-  '#ec4899', // pink
-  '#06b6d4', // cyan
-  '#f97316', // orange
-  '#6366f1', // indigo
+  '#0284c7', // sky 600
+  '#2563eb', // blue 600
+  '#0d9488', // teal 600
+  '#7c3aed', // violet 600
+  '#ea580c', // orange 600
+  '#059669', // emerald 600
+  '#4f46e5', // indigo 600
+  '#db2777', // pink 600
+  '#0891b2', // cyan 600
+  '#334155', // slate 700
 ];

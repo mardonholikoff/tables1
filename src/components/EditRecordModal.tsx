@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { X, Save, AlertCircle, Edit3 } from 'lucide-react';
+import { X, Save, Edit3 } from 'lucide-react';
 import { UserTable, TableRowData } from '../types';
 
 interface EditRecordModalProps {
@@ -36,9 +36,14 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
     e.preventDefault();
 
     const finalValues: Record<string, string> = {};
-    table.columns.forEach((col) => {
-      const v = (values[col.key] || '').trim();
-      finalValues[col.key] = v.length > 0 ? v : 'nomsiz';
+    table.columns.forEach((col, idx) => {
+      if (idx === 0 || idx === 1) {
+        // 1-ustun va 2-ustun o'zgarmas saqlanadi
+        finalValues[col.key] = row.values[col.key] || (idx === 0 ? '1' : '');
+      } else {
+        const v = (values[col.key] || '').trim();
+        finalValues[col.key] = v.length > 0 ? v : 'nomsiz';
+      }
     });
 
     const updated: TableRowData = {
@@ -50,69 +55,81 @@ export const EditRecordModal: React.FC<EditRecordModalProps> = ({
     onClose();
   };
 
+  // Foydalanuvchi tahrirlaydigan ustunlar (3-ustundan boshlab)
+  const editableColumns = table.columns.slice(2);
+
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-sky-950/40 backdrop-blur-md overflow-y-auto font-mono text-sky-950">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-8"
+          className="w-full max-w-lg bg-white border border-sky-300 rounded-2xl shadow-2xl overflow-hidden my-8"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/60">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-sky-200 bg-sky-50">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-blue-600/20 text-blue-400 border border-blue-500/30 flex items-center justify-center">
-                <Edit3 className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-xl bg-sky-600 text-white font-bold flex items-center justify-center border border-sky-700">
+                <Edit3 className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-white">Yozuvni Tahrirlash</h2>
-                <p className="text-xs text-slate-400">"{table.name}" jadvali qatori</p>
+                <h2 className="text-base font-bold text-sky-950 font-mono">Yozuvni Tahrirlash</h2>
+                <p className="text-xs text-sky-900 font-medium">"{table.name}" jadvali</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              className="p-1.5 rounded-lg text-sky-900 hover:bg-sky-200 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          <form onSubmit={handleSubmit} className="p-6 space-y-4">
-            <div className="space-y-3 max-h-72 overflow-y-auto pr-1">
-              {table.columns.map((col, idx) => (
-                <div key={col.id} className="p-3 bg-slate-950/60 rounded-xl border border-slate-800">
-                  <div className="flex items-center justify-between text-xs mb-1.5">
-                    <span className="font-semibold text-slate-200">{col.name}</span>
-                    <span className="font-mono text-[10px] text-blue-400 bg-blue-950/50 px-2 py-0.5 rounded border border-blue-800/60">
-                      {col.key}
-                    </span>
-                  </div>
-                  <input
-                    type="text"
-                    value={values[col.key] ?? ''}
-                    onChange={(e) => handleChange(col.key, e.target.value)}
-                    placeholder="Bo'sh bo'lsa: nomsiz"
-                    className="w-full px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-lg text-white text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-                  />
+          <form onSubmit={handleSubmit} className="p-6 space-y-4 font-mono">
+            {/* Foydalanuvchi tahrirlaydigan ustunlar */}
+            <div className="space-y-3 max-h-80 overflow-y-auto pr-1 custom-scrollbar">
+              {editableColumns.length === 0 ? (
+                <div className="p-4 bg-sky-50 rounded-xl border border-sky-200 text-center text-xs text-sky-900 font-bold">
+                  Tahrirlanadigan qo'shimcha ustunlar mavjud emas.
                 </div>
-              ))}
+              ) : (
+                editableColumns.map((col, idx) => {
+                  const colNumber = idx + 3;
+                  return (
+                    <div key={col.id} className="p-3 bg-sky-50 rounded-xl border border-sky-200 space-y-1">
+                      <div className="flex items-center justify-between text-xs font-mono">
+                        <span className="font-bold text-sky-950">
+                          {colNumber}-ustun: <span className="text-sky-800">{col.name}</span>
+                        </span>
+                        <span className="text-[10px] text-sky-800 font-bold font-mono">c{colNumber}</span>
+                      </div>
+                      <input
+                        type="text"
+                        value={values[col.key] || ''}
+                        onChange={(e) => handleChange(col.key, e.target.value)}
+                        placeholder={`"${col.name}" qiymati...`}
+                        className="w-full px-3 py-2 bg-white border border-sky-300 rounded-lg text-sky-950 placeholder-sky-400 text-xs focus:outline-none focus:ring-2 focus:ring-sky-500 transition font-mono font-medium"
+                      />
+                    </div>
+                  );
+                })
+              )}
             </div>
 
-            <div className="pt-4 border-t border-slate-800 flex items-center justify-end gap-3">
+            <div className="pt-3 border-t border-sky-200 flex items-center justify-end gap-3 font-mono">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-sky-900 hover:bg-sky-100 transition cursor-pointer"
               >
                 Bekor qilish
               </button>
-
               <button
                 type="submit"
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-semibold rounded-xl shadow-lg shadow-blue-600/30 flex items-center gap-2 transition cursor-pointer"
+                className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-xs border border-sky-700 flex items-center gap-2 transition cursor-pointer"
               >
-                <Save className="w-4 h-4" />
+                <Save className="w-4 h-4 text-white" />
                 <span>O'zgarishlarni saqlash</span>
               </button>
             </div>

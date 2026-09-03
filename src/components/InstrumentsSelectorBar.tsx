@@ -2,11 +2,9 @@ import React, { useState } from 'react';
 import {
   Wand2,
   Check,
-  Sparkles,
   SlidersHorizontal,
   ChevronDown,
   ChevronUp,
-  LayoutGrid,
   Layers,
   TrendingUp,
   BarChart2,
@@ -16,13 +14,10 @@ import {
   Calculator,
   Trophy,
   ScatterChart as ScatterIcon,
-  Eye,
-  RotateCcw,
 } from 'lucide-react';
 import {
   AVAILABLE_INSTRUMENTS,
   INSTRUMENT_PRESETS,
-  AnalyticalInstrumentDef,
 } from '../utils/analytics';
 
 interface InstrumentsSelectorBarProps {
@@ -76,24 +71,24 @@ export const InstrumentsSelectorBar: React.FC<InstrumentsSelectorBarProps> = ({
   };
 
   return (
-    <div className="bg-slate-900 border border-slate-800 rounded-2xl p-3.5 space-y-3">
+    <div className="bg-white border border-sky-200 rounded-2xl p-4 space-y-3.5 shadow-sm font-mono text-sky-950">
       {/* Top Bar Header */}
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-indigo-500 to-purple-600 text-white flex items-center justify-center shadow-md shadow-indigo-500/20">
-            <Wand2 className="w-4 h-4" />
+        <div className="flex items-center gap-2.5">
+          <div className="w-8 h-8 rounded-xl bg-sky-600 text-white flex items-center justify-center font-bold shadow-xs border border-sky-700">
+            <Wand2 className="w-4 h-4 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="text-xs font-bold text-white uppercase tracking-wider">
+              <span className="text-xs font-bold text-sky-950 uppercase tracking-wider font-mono">
                 Analitik Instrumentlar
               </span>
-              <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-900 border border-sky-300">
                 {selectedInstruments.length} / {AVAILABLE_INSTRUMENTS.length} ta faol
               </span>
             </div>
-            <p className="text-[11px] text-slate-400">
-              Dashboardda ko'rsatiladigan tahliliy vidjet va grafiklarni tanlang
+            <p className="text-[11px] text-sky-900 font-medium">
+              Dashboardda ko'rsatiladigan tahliliy vidjet va grafiklarni sozlang
             </p>
           </div>
         </div>
@@ -102,14 +97,14 @@ export const InstrumentsSelectorBar: React.FC<InstrumentsSelectorBarProps> = ({
         <div className="flex items-center gap-1.5 flex-wrap">
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-xl border border-slate-700 transition cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-sky-50 text-sky-900 text-xs font-bold rounded-xl border border-sky-300 transition cursor-pointer font-mono shadow-xs"
           >
-            <SlidersHorizontal className="w-3.5 h-3.5 text-indigo-400" />
+            <SlidersHorizontal className="w-3.5 h-3.5 text-sky-700" />
             <span>Instrumentlarni sozlash</span>
             {isOpen ? (
-              <ChevronUp className="w-3 h-3 text-slate-400" />
+              <ChevronUp className="w-3 h-3 text-sky-700" />
             ) : (
-              <ChevronDown className="w-3 h-3 text-slate-400" />
+              <ChevronDown className="w-3 h-3 text-sky-700" />
             )}
           </button>
         </div>
@@ -123,21 +118,21 @@ export const InstrumentsSelectorBar: React.FC<InstrumentsSelectorBarProps> = ({
             <button
               key={inst.id}
               onClick={() => toggleInstrument(inst.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium shrink-0 transition cursor-pointer border ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold shrink-0 transition cursor-pointer border font-mono ${
                 isSelected
-                  ? 'bg-indigo-600/20 text-indigo-200 border-indigo-500/50 shadow-sm'
-                  : 'bg-slate-950/60 text-slate-500 border-slate-800/80 hover:text-slate-300 hover:bg-slate-800/60'
+                  ? 'bg-sky-600 text-white border-sky-700 shadow-xs'
+                  : 'bg-white text-sky-900 border-sky-300 hover:bg-sky-50'
               }`}
               title={inst.description}
             >
-              <span className={isSelected ? 'text-indigo-400' : 'text-slate-500'}>
+              <span className={isSelected ? 'text-white' : 'text-sky-700'}>
                 {getIcon(inst.icon)}
               </span>
               <span>{inst.name}</span>
               {isSelected ? (
-                <Check className="w-3 h-3 text-indigo-400 stroke-[3]" />
+                <Check className="w-3 h-3 text-white stroke-[3]" />
               ) : (
-                <span className="w-1.5 h-1.5 rounded-full bg-slate-700" />
+                <span className="w-1.5 h-1.5 rounded-full bg-sky-300" />
               )}
             </button>
           );
@@ -146,10 +141,10 @@ export const InstrumentsSelectorBar: React.FC<InstrumentsSelectorBarProps> = ({
 
       {/* Expanded Instrument Studio (when opened) */}
       {isOpen && (
-        <div className="p-4 bg-slate-950/90 rounded-2xl border border-slate-800/90 space-y-4 animate-in fade-in slide-in-from-top-2 duration-150">
+        <div className="p-4 bg-sky-50/80 rounded-2xl border border-sky-200 space-y-4 animate-in fade-in slide-in-from-top-2 duration-150">
           {/* Preset Buttons */}
           <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+            <span className="text-[11px] font-bold text-sky-950 uppercase tracking-wider block mb-2 font-mono">
               Tayyor To'plamlar (Presets):
             </span>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
@@ -162,19 +157,19 @@ export const InstrumentsSelectorBar: React.FC<InstrumentsSelectorBarProps> = ({
                   <button
                     key={preset.id}
                     onClick={() => applyPreset(preset.instruments)}
-                    className={`p-2.5 rounded-xl text-left border transition cursor-pointer flex flex-col justify-between ${
+                    className={`p-2.5 rounded-xl text-left border transition cursor-pointer flex flex-col justify-between font-mono ${
                       isCurrentPreset
-                        ? 'bg-indigo-600/20 border-indigo-500/60 text-white'
-                        : 'bg-slate-900 border-slate-800/80 text-slate-300 hover:bg-slate-800/80'
+                        ? 'bg-sky-600 border-sky-700 text-white shadow-xs'
+                        : 'bg-white border-sky-300 text-sky-950 hover:bg-sky-100'
                     }`}
                   >
                     <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-bold truncate">{preset.name}</span>
+                      <span className={`text-xs font-bold truncate ${isCurrentPreset ? 'text-white' : 'text-sky-950'}`}>{preset.name}</span>
                       {isCurrentPreset && (
-                        <Check className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                        <Check className="w-3.5 h-3.5 text-white shrink-0" />
                       )}
                     </div>
-                    <p className="text-[10px] text-slate-400 leading-tight">
+                    <p className={`text-[10px] leading-tight ${isCurrentPreset ? 'text-sky-100' : 'text-sky-900'}`}>
                       {preset.description}
                     </p>
                   </button>
@@ -186,20 +181,20 @@ export const InstrumentsSelectorBar: React.FC<InstrumentsSelectorBarProps> = ({
           {/* Full Grid of instruments with descriptions */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">
+              <span className="text-[11px] font-bold text-sky-950 uppercase tracking-wider font-mono">
                 Barcha Mavjud Instrumentlar:
               </span>
-              <div className="flex items-center gap-2 text-xs">
+              <div className="flex items-center gap-2 text-xs font-mono">
                 <button
                   onClick={() => onChange(AVAILABLE_INSTRUMENTS.map((i) => i.id))}
-                  className="text-indigo-400 hover:underline cursor-pointer"
+                  className="text-sky-700 font-bold hover:text-sky-950 hover:underline cursor-pointer"
                 >
                   Barchasini yoqish
                 </button>
-                <span className="text-slate-600">•</span>
+                <span className="text-sky-300">•</span>
                 <button
                   onClick={() => onChange(['kpi_cards', 'dynamics_trend'])}
-                  className="text-slate-400 hover:underline cursor-pointer"
+                  className="text-sky-700 hover:text-sky-950 hover:underline cursor-pointer font-bold"
                 >
                   Ixcham ko'rinish
                 </button>
@@ -214,17 +209,17 @@ export const InstrumentsSelectorBar: React.FC<InstrumentsSelectorBarProps> = ({
                   <div
                     key={inst.id}
                     onClick={() => toggleInstrument(inst.id)}
-                    className={`p-3 rounded-xl border transition cursor-pointer flex items-start gap-2.5 select-none ${
+                    className={`p-3 rounded-xl border transition cursor-pointer flex items-start gap-2.5 select-none font-mono ${
                       isSelected
-                        ? 'bg-indigo-950/30 border-indigo-500/50 shadow-sm'
-                        : 'bg-slate-900/60 border-slate-800/70 hover:bg-slate-800/50 opacity-70'
+                        ? 'bg-white border-sky-500 shadow-sm'
+                        : 'bg-white/60 border-sky-200 hover:bg-white opacity-80'
                     }`}
                   >
                     <div
                       className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 mt-0.5 ${
                         isSelected
-                          ? 'bg-indigo-600 text-white'
-                          : 'bg-slate-800 text-slate-400'
+                          ? 'bg-sky-600 text-white font-bold'
+                          : 'bg-sky-100 text-sky-700'
                       }`}
                     >
                       {getIcon(inst.icon)}
@@ -233,29 +228,29 @@ export const InstrumentsSelectorBar: React.FC<InstrumentsSelectorBarProps> = ({
                       <div className="flex items-center justify-between gap-1 mb-0.5">
                         <span
                           className={`text-xs font-bold truncate ${
-                            isSelected ? 'text-white' : 'text-slate-400'
+                            isSelected ? 'text-sky-950' : 'text-sky-900'
                           }`}
                         >
                           {inst.name}
                         </span>
                         {inst.badge && (
-                          <span className="text-[9px] font-semibold px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
+                          <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-sky-100 text-sky-800 border border-sky-300">
                             {inst.badge}
                           </span>
                         )}
                       </div>
-                      <p className="text-[10px] text-slate-400 leading-snug">
+                      <p className="text-[10px] text-sky-900 leading-snug font-medium">
                         {inst.description}
                       </p>
                     </div>
                     <div
                       className={`w-4 h-4 rounded-md flex items-center justify-center border shrink-0 mt-0.5 ${
                         isSelected
-                          ? 'bg-indigo-600 border-indigo-600 text-white'
-                          : 'border-slate-700 bg-slate-950'
+                          ? 'bg-sky-600 border-sky-600 text-white'
+                          : 'border-sky-300 bg-white'
                       }`}
                     >
-                      {isSelected && <Check className="w-2.5 h-2.5 stroke-[3]" />}
+                      {isSelected && <Check className="w-2.5 h-2.5 stroke-[3] text-white" />}
                     </div>
                   </div>
                 );

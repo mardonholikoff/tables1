@@ -4,14 +4,12 @@ import {
   X,
   Plus,
   Trash2,
-  Table as TableIcon,
   CheckCircle2,
   AlertCircle,
   ArrowUp,
   ArrowDown,
-  Columns,
-  Sparkles,
   Edit3,
+  Lock,
 } from 'lucide-react';
 import { UserTable, ColumnDefinition } from '../types';
 
@@ -22,7 +20,7 @@ interface EditTableModalProps {
   onSave: (updatedTable: UserTable, changeSummary: string) => void;
 }
 
-interface EditableColumn {
+interface EditableCustomColumn {
   id: string;
   key: string;
   name: string;
@@ -36,26 +34,27 @@ export const EditTableModal: React.FC<EditTableModalProps> = ({
   onSave,
 }) => {
   const [tableName, setTableName] = useState(table.name);
-  const [columns, setColumns] = useState<EditableColumn[]>([]);
+  // Only user-defined custom columns (excluding system columns 1 and 2)
+  const [customColumns, setCustomColumns] = useState<EditableCustomColumn[]>([]);
   const [error, setError] = useState('');
 
   // Synchronize when table opens/changes
   useEffect(() => {
     if (table) {
       setTableName(table.name);
-      setColumns(
-        table.columns.map((c) => ({
-          id: c.id,
-          key: c.key,
-          name: c.name,
-        }))
-      );
+      // System columns are at index 0 and 1, custom columns start from index 2
+      const userCols = table.columns.slice(2).map((c) => ({
+        id: c.id,
+        key: c.key,
+        name: c.name,
+      }));
+      setCustomColumns(userCols);
       setError('');
     }
   }, [table, isOpen]);
 
   const handleColumnNameChange = (index: number, newName: string) => {
-    setColumns((prev) => {
+    setCustomColumns((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], name: newName };
       return next;
@@ -63,35 +62,31 @@ export const EditTableModal: React.FC<EditTableModalProps> = ({
   };
 
   const handleAddColumn = () => {
-    if (columns.length >= 30) {
-      setError("Ustunlar soni ko'pi bilan 30 tagacha bo'lishi mumkin.");
+    if (customColumns.length >= 28) {
+      setError("Qo'shimcha ustunlar soni ko'pi bilan 28 tagacha bo'lishi mumkin.");
       return;
     }
-    const newId = `col_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-    const newColNumber = columns.length + 1;
-    const newCol: EditableColumn = {
+    const newColNumber = customColumns.length + 3; // 3, 4, 5...
+    const newId = `c${newColNumber}_${Date.now()}`;
+    const newCol: EditableCustomColumn = {
       id: newId,
       key: newId,
-      name: `nomsiz ${newColNumber}`,
+      name: customColumns.length === 0 ? 'nomsiz' : `nomsiz ${customColumns.length + 1}`,
       isNew: true,
     };
-    setColumns((prev) => [...prev, newCol]);
+    setCustomColumns((prev) => [...prev, newCol]);
   };
 
   const handleRemoveColumn = (index: number) => {
-    if (columns.length <= 1) {
-      setError("Jadvalda kamida 1 ta ustun bo'lishi shart!");
-      return;
-    }
-    setColumns((prev) => prev.filter((_, i) => i !== index));
+    setCustomColumns((prev) => prev.filter((_, i) => i !== index));
     setError('');
   };
 
   const handleMoveColumn = (index: number, direction: 'up' | 'down') => {
     const targetIndex = direction === 'up' ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= columns.length) return;
+    if (targetIndex < 0 || targetIndex >= customColumns.length) return;
 
-    setColumns((prev) => {
+    setCustomColumns((prev) => {
       const next = [...prev];
       const temp = next[index];
       next[index] = next[targetIndex];
@@ -104,84 +99,50 @@ export const EditTableModal: React.FC<EditTableModalProps> = ({
     e.preventDefault();
     setError('');
 
-    const trimmedName = tableName.trim();
-    if (!trimmedName) {
-      setError("Jadval nomi majburiy! Iltimos, jadval nomini kiriting.");
+    const cleanName = tableName.trim();
+    if (!cleanName) {
+      setError("Jadval nomi majburiy!");
       return;
     }
 
-    if (columns.length === 0) {
-      setError("Jadvalda kamida 1 ta ustun bo'lishi kerak!");
-      return;
-    }
+    // Retain 1-ustun (№) and 2-ustun (Sana va vaqt)
+    const systemCol1 = table.columns[0] || { id: 'c1', key: 'c1', name: '№' };
+    const systemCol2 = table.columns[1] || { id: 'c2', key: 'c2', name: 'Sana va vaqt' };
 
-    // Finalize columns: sanitize empty names to 'nomsiz'
-    const finalColumns: ColumnDefinition[] = columns.map((col, idx) => {
-      const raw = col.name.trim();
-      const resolvedName = raw.length > 0 ? raw : idx === 0 ? 'nomsiz' : `nomsiz ${idx + 1}`;
-      return {
+    const newColumns: ColumnDefinition[] = [
+      systemCol1,
+      systemCol2,
+      ...customColumns.map((col, idx) => ({
         id: col.id,
         key: col.key,
-        name: resolvedName,
-      };
-    });
+        name: col.name.trim().length > 0 ? col.name.trim() : `nomsiz ${idx + 1}`,
+      })),
+    ];
 
-    // Determine what changed for the audit log summary
-    const nameChanged = trimmedName !== table.name;
-    const addedColumnsCount = finalColumns.filter(
-      (fc) => !table.columns.some((tc) => tc.key === fc.key)
-    ).length;
-    const removedColumnsCount = table.columns.filter(
-      (tc) => !finalColumns.some((fc) => fc.key === tc.key)
-    ).length;
-    const renamedColumns = finalColumns.filter((fc) => {
-      const original = table.columns.find((tc) => tc.key === fc.key);
-      return original && original.name !== fc.name;
-    });
-
-    const changeNotes: string[] = [];
-    if (nameChanged) {
-      changeNotes.push(`Nomi: "${table.name}" → "${trimmedName}"`);
-    }
-    if (addedColumnsCount > 0) {
-      changeNotes.push(`${addedColumnsCount} ta yangi ustun qo'shildi`);
-    }
-    if (removedColumnsCount > 0) {
-      changeNotes.push(`${removedColumnsCount} ta ustun o'chirildi`);
-    }
-    if (renamedColumns.length > 0) {
-      changeNotes.push(
-        `Ustunlar qayta nomlandi: ${renamedColumns.map((r) => `"${r.name}"`).join(', ')}`
-      );
-    }
-
-    // Clean up rows if columns were removed
-    const validKeys = new Set(finalColumns.map((c) => c.key));
+    // Align row values with updated columns
     const updatedRows = table.rows.map((row) => {
-      const newValues: Record<string, string> = {};
-      finalColumns.forEach((col) => {
-        newValues[col.key] = row.values[col.key] || '';
+      const newVals: Record<string, string> = { ...row.values };
+      customColumns.forEach((col) => {
+        if (!newVals[col.key]) {
+          newVals[col.key] = 'nomsiz';
+        }
       });
       return {
         ...row,
-        values: newValues,
+        values: newVals,
       };
     });
 
     const updatedTable: UserTable = {
       ...table,
-      name: trimmedName,
+      name: cleanName,
       updatedAt: new Date().toISOString(),
-      columns: finalColumns,
+      columns: newColumns,
       rows: updatedRows,
     };
 
-    const summaryText =
-      changeNotes.length > 0
-        ? changeNotes.join('; ')
-        : "Jadval parametrlari yangilandi";
-
-    onSave(updatedTable, summaryText);
+    const changesText = `Jadval nomi "${cleanName}", jami ustunlar: ${newColumns.length} ta`;
+    onSave(updatedTable, changesText);
     onClose();
   };
 
@@ -189,202 +150,161 @@ export const EditTableModal: React.FC<EditTableModalProps> = ({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm overflow-y-auto">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-sky-950/40 backdrop-blur-md overflow-y-auto font-mono text-sky-950">
         <motion.div
           initial={{ opacity: 0, scale: 0.95, y: 10 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.95, y: 10 }}
-          className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden my-8"
+          className="w-full max-w-xl bg-white border border-sky-300 rounded-2xl shadow-2xl overflow-hidden my-8"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-900/70">
+          <div className="flex items-center justify-between px-6 py-4 border-b border-sky-200 bg-sky-50">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-indigo-600/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
-                <Edit3 className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-xl bg-sky-600 text-white font-bold flex items-center justify-center border border-sky-700">
+                <Edit3 className="w-5 h-5 text-white" />
               </div>
               <div>
-                <h2 className="text-base font-bold text-white">Jadvalni Tahrirlash</h2>
-                <p className="text-xs text-slate-400">
-                  Jadval nomi, ustunlar nomlari va yangi ustunlarni boshqarish
-                </p>
+                <h2 className="text-base font-bold text-sky-950 font-mono">Jadval Strukturasi & Nomini Tahrirlash</h2>
+                <p className="text-xs text-sky-900 font-medium">Ustunlarni qo'shish, o'chirish yoki tartibini o'zgartirish</p>
               </div>
             </div>
             <button
               onClick={onClose}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition cursor-pointer"
+              className="p-1.5 rounded-lg text-sky-900 hover:bg-sky-200 transition cursor-pointer"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+          <form onSubmit={handleSubmit} className="p-6 space-y-5 font-mono">
             {error && (
-              <div className="p-3 bg-rose-950/60 border border-rose-800 rounded-xl flex items-center gap-2 text-xs text-rose-200">
-                <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+              <div className="p-3 bg-red-50 border border-red-300 rounded-xl flex items-center gap-2 text-xs text-red-800 font-bold">
+                <AlertCircle className="w-4 h-4 text-red-600 shrink-0" />
                 <span>{error}</span>
               </div>
             )}
 
-            {/* 1. Table Name */}
+            {/* Jadval nomi */}
             <div>
-              <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
-                Jadval nomi <span className="text-rose-400 font-bold">* (Majburiy)</span>
+              <label className="block text-xs font-bold text-sky-950 uppercase tracking-wider mb-1.5 font-mono">
+                Jadval nomi <span className="text-red-600 font-bold">*</span>
               </label>
-              <div className="relative">
-                <input
-                  type="text"
-                  value={tableName}
-                  onChange={(e) => setTableName(e.target.value)}
-                  placeholder="Jadval nomini kiriting..."
-                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition"
-                  autoFocus
-                />
-              </div>
-              <p className="text-[11px] text-slate-500 mt-1">
-                Jadval nomini o'zgartirsangiz, barcha hisobotlar va tahlillar yangi nom bilan ko'rsatiladi.
-              </p>
+              <input
+                type="text"
+                value={tableName}
+                onChange={(e) => setTableName(e.target.value)}
+                placeholder="Jadval nomi..."
+                className="w-full px-4 py-2.5 bg-sky-50/50 border border-sky-300 rounded-xl text-sky-950 placeholder-sky-400 text-sm focus:outline-none focus:ring-2 focus:ring-sky-500 transition font-mono font-medium"
+                required
+              />
             </div>
 
-            {/* 2. Column Management */}
-            <div>
-              <div className="flex items-center justify-between mb-2.5">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider">
-                    Jadval Ustunlari ({columns.length} ta)
-                  </label>
-                  <p className="text-[11px] text-slate-400">
-                    Ustun nomlarini tahrirlang, tartibini o'zgartiring yoki yangi ustun qo'shing
-                  </p>
+            {/* System Columns Protected Info */}
+            <div className="p-3 bg-sky-50 rounded-xl border border-sky-200 space-y-1.5 font-mono">
+              <div className="text-[11px] font-bold text-sky-950 flex items-center gap-1.5">
+                <Lock className="w-3.5 h-3.5 text-sky-700" />
+                <span>Doimiy Tizim Ustunlari (Avtomatik boshqariladi):</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2 text-xs font-mono">
+                <div className="p-2 bg-white rounded-lg border border-sky-200 text-sky-950 font-bold flex items-center justify-between">
+                  <span>1-ustun: №</span>
+                  <span className="text-[10px] text-sky-800 font-bold">Avtomatik</span>
                 </div>
+                <div className="p-2 bg-white rounded-lg border border-sky-200 text-sky-950 font-bold flex items-center justify-between">
+                  <span>2-ustun: Sana va vaqt</span>
+                  <span className="text-[10px] text-sky-800 font-bold">Avtomatik</span>
+                </div>
+              </div>
+            </div>
 
+            {/* Custom columns manager */}
+            <div>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-bold text-sky-950 uppercase tracking-wider font-mono">
+                  Qo'shimcha ustunlar ({customColumns.length} ta)
+                </label>
                 <button
                   type="button"
                   onClick={handleAddColumn}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow-sm transition cursor-pointer"
+                  className="flex items-center gap-1 px-2.5 py-1 bg-sky-600 hover:bg-sky-700 text-white rounded-lg text-xs font-bold border border-sky-700 transition cursor-pointer shadow-xs"
                 >
-                  <Plus className="w-3.5 h-3.5" />
+                  <Plus className="w-3.5 h-3.5 text-white" />
                   <span>Yangi ustun qo'shish</span>
                 </button>
               </div>
 
-              {/* Columns list */}
-              <div className="space-y-2 max-h-72 overflow-y-auto pr-1">
-                {columns.map((col, index) => (
-                  <div
-                    key={col.id}
-                    className={`flex items-center gap-2 p-2.5 rounded-xl border transition ${
-                      col.isNew
-                        ? 'bg-indigo-950/30 border-indigo-500/40'
-                        : 'bg-slate-950/70 border-slate-800'
-                    }`}
-                  >
-                    {/* Index badge */}
-                    <span className="w-7 h-7 rounded-lg bg-slate-800 border border-slate-700 text-slate-300 text-xs font-mono font-bold flex items-center justify-center shrink-0">
-                      #{index + 1}
-                    </span>
-
-                    {/* Column name input */}
-                    <div className="flex-1">
-                      <input
-                        type="text"
-                        value={col.name}
-                        onChange={(e) => handleColumnNameChange(index, e.target.value)}
-                        placeholder={`Ustun #${index + 1} nomi (default: nomsiz)`}
-                        className="w-full px-3 py-1.5 bg-slate-900 border border-slate-700/80 rounded-lg text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
-                      />
-                    </div>
-
-                    {col.isNew && (
-                      <span className="text-[10px] font-semibold px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 shrink-0">
-                        Yangi
-                      </span>
-                    )}
-
-                    {/* Move Up/Down Controls */}
-                    <div className="flex items-center gap-0.5 shrink-0">
-                      <button
-                        type="button"
-                        onClick={() => handleMoveColumn(index, 'up')}
-                        disabled={index === 0}
-                        className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent rounded-md transition cursor-pointer"
-                        title="Yuqoriga surish"
-                      >
-                        <ArrowUp className="w-3.5 h-3.5" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => handleMoveColumn(index, 'down')}
-                        disabled={index === columns.length - 1}
-                        className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:hover:bg-transparent rounded-md transition cursor-pointer"
-                        title="Pastga surish"
-                      >
-                        <ArrowDown className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-
-                    {/* Delete Column button */}
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveColumn(index)}
-                      disabled={columns.length <= 1}
-                      className="p-1.5 text-slate-500 hover:text-rose-400 hover:bg-rose-950/40 disabled:opacity-30 disabled:hover:bg-transparent rounded-md transition cursor-pointer shrink-0"
-                      title={
-                        columns.length <= 1
-                          ? "Kamida bitta ustun qolishi kerak"
-                          : "Ushbu ustunni o'chirish"
-                      }
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1 custom-scrollbar font-mono">
+                {customColumns.length === 0 ? (
+                  <div className="p-4 bg-sky-50 rounded-xl border border-sky-200 text-center text-xs text-sky-900 font-bold">
+                    Hozircha qo'shimcha ustun yo'q. "Yangi ustun qo'shish" tugmasini bosing.
                   </div>
-                ))}
+                ) : (
+                  customColumns.map((col, idx) => {
+                    const colNumber = idx + 3;
+                    return (
+                      <div
+                        key={col.id}
+                        className="flex items-center gap-2 p-2 bg-sky-50 rounded-xl border border-sky-200"
+                      >
+                        <div className="w-10 h-7 rounded-md bg-sky-100 border border-sky-300 flex items-center justify-center text-[11px] font-mono font-black text-sky-900 shrink-0">
+                          c{colNumber}
+                        </div>
+                        <input
+                          type="text"
+                          value={col.name}
+                          onChange={(e) => handleColumnNameChange(idx, e.target.value)}
+                          placeholder={`${colNumber}-ustun nomi`}
+                          className="flex-1 px-3 py-1.5 bg-white border border-sky-300 rounded-lg text-sky-950 text-xs placeholder-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono font-medium"
+                        />
+                        <div className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            disabled={idx === 0}
+                            onClick={() => handleMoveColumn(idx, 'up')}
+                            className="p-1 text-sky-900 hover:bg-sky-200 rounded disabled:opacity-20 cursor-pointer"
+                            title="Yuqoriga surish"
+                          >
+                            <ArrowUp className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            disabled={idx === customColumns.length - 1}
+                            onClick={() => handleMoveColumn(idx, 'down')}
+                            className="p-1 text-sky-900 hover:bg-sky-200 rounded disabled:opacity-20 cursor-pointer"
+                            title="Pastga surish"
+                          >
+                            <ArrowDown className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveColumn(idx)}
+                            className="p-1 text-sky-900 hover:text-red-700 hover:bg-sky-200 rounded cursor-pointer"
+                            title="Ustunni o'chirish"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
-
-              {/* Add column bottom button */}
-              <button
-                type="button"
-                onClick={handleAddColumn}
-                className="w-full mt-2.5 py-2 px-3 border border-dashed border-slate-700 hover:border-indigo-500/60 rounded-xl text-xs font-medium text-slate-400 hover:text-indigo-300 hover:bg-indigo-950/20 flex items-center justify-center gap-1.5 transition cursor-pointer"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>+ Yana yangi ustun qo'shish</span>
-              </button>
             </div>
 
-            {/* Explanatory Info Card */}
-            <div className="p-3.5 bg-slate-950/80 border border-slate-800 rounded-xl text-xs text-slate-400 space-y-1.5">
-              <div className="flex items-center gap-1.5 text-slate-300 font-semibold">
-                <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Muhim ma'lumot:</span>
-              </div>
-              <ul className="list-disc list-inside space-y-1 text-[11px] text-slate-400">
-                <li>
-                  Mavjud ustun nomlarini o'zgartirsangiz, barcha yozuvlardagi qiymatlar to'liq saqlanib qoladi.
-                </li>
-                <li>
-                  Yangi ustun qo'shsangiz, mavjud qatorlarda yangi ustun bo'sh bo'ladi va uni xohlagan payt tahrirlash mumkin.
-                </li>
-                <li>
-                  Barcha o'zgarishlar Google Firebase va mahalliy xotirada darhol yangilanadi hamda audit logida qayd etiladi.
-                </li>
-              </ul>
-            </div>
-
-            {/* Modal Actions */}
-            <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
+            {/* Submit */}
+            <div className="pt-3 border-t border-sky-200 flex items-center justify-end gap-3 font-mono">
               <button
                 type="button"
                 onClick={onClose}
-                className="px-4 py-2 text-xs font-semibold text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-xl transition cursor-pointer"
+                className="px-4 py-2.5 rounded-xl text-xs font-bold text-sky-900 hover:bg-sky-100 transition cursor-pointer"
               >
                 Bekor qilish
               </button>
               <button
                 type="submit"
-                className="px-5 py-2 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-500 rounded-xl shadow-md shadow-indigo-600/30 flex items-center gap-2 transition cursor-pointer"
+                className="px-5 py-2.5 bg-sky-600 hover:bg-sky-700 text-white text-xs sm:text-sm font-bold rounded-xl shadow-xs border border-sky-700 flex items-center gap-2 transition cursor-pointer"
               >
-                <CheckCircle2 className="w-4 h-4" />
+                <CheckCircle2 className="w-4 h-4 text-white" />
                 <span>O'zgarishlarni saqlash</span>
               </button>
             </div>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AreaChart as AreaIcon, TrendingUp, Layers } from 'lucide-react';
+import { AreaChart as AreaIcon } from 'lucide-react';
 import {
   AreaChart,
   Area,
@@ -52,14 +52,14 @@ export const CumulativeAreaChart: React.FC<CumulativeAreaChartProps> = ({ table 
   });
 
   return (
-    <div className="p-5 bg-slate-900 border border-slate-800 rounded-2xl shadow-lg">
+    <div className="p-5 bg-white border border-sky-200 rounded-2xl shadow-sm font-mono text-sky-950">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-4">
         <div>
-          <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-            <AreaIcon className="w-4 h-4 text-cyan-400" />
+          <h4 className="text-xs font-bold text-sky-950 uppercase tracking-wider flex items-center gap-1.5 font-mono">
+            <AreaIcon className="w-4 h-4 text-sky-700" />
             <span>Kümülyativ O'sish Maydoni (Cumulative Growth Area)</span>
           </h4>
-          <p className="text-[11px] text-slate-400">
+          <p className="text-[11px] text-sky-900 font-mono font-medium">
             Yozuvlar davomida ko'rsatkichlarning jamlanib, yig'ilib borish hajmi
           </p>
         </div>
@@ -83,25 +83,26 @@ export const CumulativeAreaChart: React.FC<CumulativeAreaChartProps> = ({ table 
                     x2="0"
                     y2="1"
                   >
-                    <stop offset="5%" stopColor={color} stopOpacity={0.4} />
-                    <stop offset="95%" stopColor={color} stopOpacity={0.0} />
+                    <stop offset="5%" stopColor={color} stopOpacity={0.6} />
+                    <stop offset="95%" stopColor={color} stopOpacity={0.05} />
                   </linearGradient>
                 );
               })}
             </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.4} />
-            <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} />
-            <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="#e0f2fe" opacity={0.8} />
+            <XAxis dataKey="name" stroke="#0369a1" fontSize={10} tickLine={false} />
+            <YAxis stroke="#0369a1" fontSize={10} tickLine={false} />
             <Tooltip
               contentStyle={{
-                backgroundColor: '#0f172a',
-                borderColor: '#334155',
+                backgroundColor: '#ffffff',
+                borderColor: '#bae6fd',
                 borderRadius: '0.75rem',
-                color: '#fff',
+                color: '#082f49',
                 fontSize: '12px',
+                boxShadow: '0 4px 6px -1px rgba(2, 132, 199, 0.1)',
               }}
             />
-            <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+            <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px', color: '#082f49' }} />
             {numericColumns.map((col, idx) => {
               const color = CHART_COLORS[idx % CHART_COLORS.length];
               return (

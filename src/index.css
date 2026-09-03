@@ -1,22 +1,63 @@
 @import "tailwindcss";
 
-/* Custom subtle scrollbars */
-.custom-scrollbar::-webkit-scrollbar {
+:root {
+  --bg-base: #edf6fe;
+  --bg-surface: #ffffff;
+  --bg-surface-elevated: #f0f8ff;
+  --text-primary: #082f49;
+  --text-secondary: #0369a1;
+  --text-muted: #0284c7;
+  --border-subtle: #bae6fd;
+  --border-strong: #38bdf8;
+  --accent-primary: #0284c7;
+  --accent-secondary: #0369a1;
+}
+
+@layer base {
+  body {
+    font-family: 'JetBrains Mono', monospace;
+    background-color: #edf6fe;
+    color: #082f49;
+    overflow-x: hidden;
+  }
+
+  code, kbd, samp, pre {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Custom subtle scrollbars in light blue */
+.custom-scrollbar::-webkit-scrollbar,
+.scrollbar-thin::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.6);
+.custom-scrollbar::-webkit-scrollbar-track,
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: #e0f2fe;
   border-radius: 9999px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.8);
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #7dd3fc;
   border-radius: 9999px;
 }
 
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: rgba(71, 85, 105, 1);
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: #38bdf8;
 }
 
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.subtle-ring {
+  box-shadow: 0 1px 3px 0 rgba(2, 132, 199, 0.08), 0 1px 2px -1px rgba(2, 132, 199, 0.08);
+}

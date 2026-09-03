@@ -34,7 +34,8 @@ export interface ActivityLog {
   id: string;
   timestamp: string;
   username: string;
-  actionType: 'create_table' | 'edit_table' | 'add_row' | 'edit_row' | 'delete_row' | 'delete_table' | 'clear_all' | 'login' | 'export_csv';
+  userRole?: UserRole;
+  actionType: 'create_table' | 'edit_table' | 'add_row' | 'edit_row' | 'delete_row' | 'delete_table' | 'clear_all' | 'login' | 'logout' | 'export_csv' | 'export_excel';
   actionTitle: string;
   tableName?: string;
   tableId?: string;

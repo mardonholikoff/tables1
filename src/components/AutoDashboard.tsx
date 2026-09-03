@@ -9,8 +9,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  AreaChart,
-  Area,
   CartesianGrid,
   Legend,
 } from 'recharts';
@@ -22,9 +20,7 @@ import {
   Hash,
   CheckCircle2,
   AlertTriangle,
-  Sparkles,
   Activity,
-  Calculator,
   Filter,
   Check,
   RotateCcw,
@@ -48,7 +44,7 @@ import { CorrelationScatterChart } from './CorrelationScatterChart';
 
 interface AutoDashboardProps {
   table: UserTable;
-  originalTable: UserTable; // unfiltered table reference for context
+  originalTable: UserTable;
   isFiltered?: boolean;
   onClearFilters?: () => void;
   onSelectCellInspector?: (columnKey: string, columnName: string, val: string) => void;
@@ -100,7 +96,6 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
     completionRate,
     numericColumns,
     categoricalColumns,
-    recentActivity,
   } = analytics;
 
   // Numerical columns chart data (rows vs numeric values)
@@ -139,32 +134,32 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
   const isInstrumentActive = (id: string) => selectedInstruments.includes(id);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5 font-mono text-sky-950">
       {/* Header Badge */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-slate-900/90 border border-slate-800 rounded-2xl">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 bg-white border border-sky-200 rounded-2xl shadow-sm">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-purple-600 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-purple-600/20">
-            <BarChart3 className="w-5 h-5" />
+          <div className="w-10 h-10 rounded-xl bg-sky-600 text-white flex items-center justify-center font-bold shadow-sm border border-sky-500">
+            <BarChart3 className="w-5 h-5 text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h3 className="text-base font-bold text-white tracking-tight">
+              <h3 className="text-base font-black text-sky-950 tracking-tight font-mono">
                 Avtomatik Analitik Dashboard
               </h3>
               {isFiltered ? (
-                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 flex items-center gap-1">
-                  <Filter className="w-3 h-3" />
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-900 border border-sky-300 flex items-center gap-1 font-mono">
+                  <Filter className="w-3 h-3 text-sky-700" />
                   Filtrlangan ({table.rows.length} / {originalTable.rows.length})
                 </span>
               ) : (
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 flex items-center gap-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-900 border border-sky-300 flex items-center gap-1 font-mono">
+                  <span className="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse" />
                   Jonli Tahlil
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-400">
-              "{table.name}" jadvali tuzilishi va qiymatlari asosida dinamik tahlillar
+            <p className="text-xs text-sky-900 font-medium">
+              "{table.name}" jadvali ma'lumotlari asosida real-vaqt statistikasi
             </p>
           </div>
         </div>
@@ -172,31 +167,31 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
         {isFiltered && onClearFilters && (
           <button
             onClick={onClearFilters}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold rounded-xl border border-slate-700 transition cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-sky-50 text-sky-900 text-xs font-bold rounded-xl border border-sky-300 transition cursor-pointer shadow-xs"
           >
-            <RotateCcw className="w-3.5 h-3.5" />
+            <RotateCcw className="w-3.5 h-3.5 text-sky-700" />
             <span>Filtrni bekor qilish</span>
           </button>
         )}
       </div>
 
-      {/* Analytical Instruments Selector Bar (Bir nechta analitik vositalarni tanlash) */}
+      {/* Analytical Instruments Selector Bar */}
       <InstrumentsSelectorBar
         selectedInstruments={selectedInstruments}
         onChange={setSelectedInstruments}
       />
 
-      {/* Column Scope Selector (Jadval qismlarini / ustunlarini tanlab tahlil qilish) */}
-      <div className="p-3 bg-slate-900/80 border border-slate-800 rounded-2xl">
-        <div className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-slate-800/80">
-          <div className="flex items-center gap-1.5 text-xs font-bold text-slate-300">
-            <SlidersHorizontal className="w-3.5 h-3.5 text-blue-400" />
+      {/* Column Scope Selector */}
+      <div className="p-3.5 bg-white border border-sky-200 rounded-2xl shadow-sm">
+        <div className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-sky-200">
+          <div className="flex items-center gap-1.5 text-xs font-bold text-sky-950 font-mono">
+            <SlidersHorizontal className="w-3.5 h-3.5 text-sky-700" />
             <span>Tahlil Qilinadigan Ustunlar ({activeColumns.length}/{table.columns.length}):</span>
           </div>
           {activeColumns.length < table.columns.length && (
             <button
               onClick={selectAllColumns}
-              className="text-[11px] text-blue-400 hover:underline cursor-pointer"
+              className="text-[11px] text-sky-700 hover:text-sky-950 hover:underline cursor-pointer font-mono font-bold"
             >
               Barchasini tanlash
             </button>
@@ -210,14 +205,14 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
               <button
                 key={col.id}
                 onClick={() => toggleColumnSelection(col.key)}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition cursor-pointer border ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs transition cursor-pointer border font-mono font-bold ${
                   isSelected
-                    ? 'bg-blue-600/20 text-blue-300 border-blue-500/40 font-medium'
-                    : 'bg-slate-950/60 text-slate-500 border-slate-800 hover:text-slate-400 line-through'
+                    ? 'bg-sky-600 text-white border-sky-700 shadow-xs'
+                    : 'bg-sky-50 text-sky-900 border-sky-200 hover:bg-sky-100 line-through opacity-70'
                 }`}
                 title={isSelected ? "O'chirish uchun bosing" : "Qo'shish uchun bosing"}
               >
-                {isSelected && <Check className="w-3 h-3 text-blue-400" />}
+                {isSelected && <Check className="w-3 h-3 text-white" />}
                 <span>{col.name}</span>
               </button>
             );
@@ -227,29 +222,29 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
 
       {/* Empty rows prompt if no rows exist */}
       {totalRows === 0 ? (
-        <div className="p-8 bg-slate-900/60 border border-dashed border-slate-800 rounded-2xl text-center">
-          <Activity className="w-8 h-8 text-blue-400 mx-auto mb-2 opacity-60" />
-          <h4 className="text-sm font-bold text-white mb-1">
+        <div className="p-8 bg-white border border-dashed border-sky-300 rounded-2xl text-center">
+          <Activity className="w-8 h-8 text-sky-600 mx-auto mb-2 opacity-60" />
+          <h4 className="text-sm font-bold text-sky-950 mb-1 font-mono">
             {isFiltered ? "Filtrga mos keluvchi ma'lumot topilmadi" : "Analitika ma'lumot kutilmoqda"}
           </h4>
-          <p className="text-xs text-slate-400 max-w-md mx-auto">
+          <p className="text-xs text-sky-900 max-w-md mx-auto font-medium">
             {isFiltered
               ? "Filtr parametrlarini o'zgartiring yoki filtrlarni tozalang."
               : "Jadvalga yangi yozuvlar kiritganingiz sari diagrammalar, dinamika va taqsimot grafiklari avtomatik shakllanadi."}
           </p>
         </div>
       ) : selectedInstruments.length === 0 ? (
-        <div className="p-8 bg-slate-900/60 border border-slate-800 rounded-2xl text-center">
-          <Wand2 className="w-8 h-8 text-indigo-400 mx-auto mb-2 opacity-60" />
-          <h4 className="text-sm font-bold text-white mb-1">
+        <div className="p-8 bg-white border border-sky-200 rounded-2xl text-center shadow-sm">
+          <Wand2 className="w-8 h-8 text-sky-600 mx-auto mb-2 opacity-60" />
+          <h4 className="text-sm font-bold text-sky-950 mb-1 font-mono">
             Hech qanday analitik instrument tanlanmagan
           </h4>
-          <p className="text-xs text-slate-400 max-w-md mx-auto mb-4">
+          <p className="text-xs text-sky-900 max-w-md mx-auto mb-4 font-medium">
             Yuqoridagi paneldan bir yoki bir nechta analitik vositalarni (KPI, Trend, Radar, Taqqoslash, Formula va h.k.) yoqing.
           </p>
           <button
             onClick={() => setSelectedInstruments(DEFAULT_SELECTED_INSTRUMENTS)}
-            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold rounded-xl shadow transition cursor-pointer"
+            className="px-4 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-xs transition cursor-pointer"
           >
             Standart to'plamni yoqish
           </button>
@@ -259,60 +254,60 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
           {/* 1. INSTRUMENT: KPI Metrikalar Kartochkalari */}
           {isInstrumentActive('kpi_cards') && (
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-              <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl">
+              <div className="p-4 bg-white border border-sky-200 rounded-2xl shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-sky-900 uppercase tracking-wider font-mono">
                     {isFiltered ? 'Filtrlangan Qatorlar' : 'Jami Yozuvlar'}
                   </span>
-                  <div className="w-7 h-7 rounded-lg bg-blue-500/10 text-blue-400 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-lg bg-sky-100 text-sky-800 border border-sky-300 flex items-center justify-center">
                     <Layers className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-white font-mono">{totalRows}</div>
-                <div className="text-[11px] text-slate-400 mt-1">
+                <div className="text-2xl font-black text-sky-950 font-mono">{totalRows}</div>
+                <div className="text-[11px] text-sky-800 mt-1 font-mono font-medium">
                   {isFiltered ? `Umumiy ${originalTable.rows.length} tadan` : "Barcha qatorlar"}
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl">
+              <div className="p-4 bg-white border border-sky-200 rounded-2xl shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-sky-900 uppercase tracking-wider font-mono">
                     Ustunlar Soni
                   </span>
-                  <div className="w-7 h-7 rounded-lg bg-purple-500/10 text-purple-400 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-lg bg-sky-100 text-sky-800 border border-sky-300 flex items-center justify-center">
                     <Hash className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-white font-mono">{totalColumns}</div>
-                <div className="text-[11px] text-slate-400 mt-1">
+                <div className="text-2xl font-black text-sky-950 font-mono">{totalColumns}</div>
+                <div className="text-[11px] text-sky-800 mt-1 font-mono font-medium">
                   {numericColumns.length} raqamli, {categoricalColumns.length} matnli
                 </div>
               </div>
 
-              <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl">
+              <div className="p-4 bg-white border border-sky-200 rounded-2xl shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-sky-900 uppercase tracking-wider font-mono">
                     To'ldirilganlik
                   </span>
-                  <div className="w-7 h-7 rounded-lg bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-lg bg-sky-100 text-sky-800 border border-sky-300 flex items-center justify-center">
                     <CheckCircle2 className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-emerald-400 font-mono">{completionRate}%</div>
-                <div className="text-[11px] text-slate-400 mt-1">{filledCellsCount} to'liq kataklar</div>
+                <div className="text-2xl font-black text-sky-950 font-mono">{completionRate}%</div>
+                <div className="text-[11px] text-sky-800 mt-1 font-mono font-medium">{filledCellsCount} to'liq kataklar</div>
               </div>
 
-              <div className="p-4 bg-slate-900 border border-slate-800 rounded-2xl">
+              <div className="p-4 bg-white border border-sky-200 rounded-2xl shadow-sm">
                 <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                  <span className="text-xs font-bold text-sky-900 uppercase tracking-wider font-mono">
                     "Nomsiz" Kataklar
                   </span>
-                  <div className="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-400 flex items-center justify-center">
+                  <div className="w-7 h-7 rounded-lg bg-sky-100 text-sky-800 border border-sky-300 flex items-center justify-center">
                     <AlertTriangle className="w-4 h-4" />
                   </div>
                 </div>
-                <div className="text-2xl font-bold text-amber-400 font-mono">{nomsizCellsCount}</div>
-                <div className="text-[11px] text-slate-400 mt-1">Bo'sh qoldirilgan qiymatlar</div>
+                <div className="text-2xl font-black text-sky-950 font-mono">{nomsizCellsCount}</div>
+                <div className="text-[11px] text-sky-800 mt-1 font-mono font-medium">Bo'sh qoldirilgan qiymatlar</div>
               </div>
             </div>
           )}
@@ -327,14 +322,14 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               {/* 3. INSTRUMENT: Ustunlar Bo'yicha Taqqoslash (Bar Chart) */}
               {isInstrumentActive('bar_comparison') && (
-                <div className="p-5 bg-slate-900 border border-slate-800 rounded-2xl shadow-lg">
+                <div className="p-5 bg-white border border-sky-200 rounded-2xl shadow-sm">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                        <TrendingUp className="w-4 h-4 text-blue-400" />
+                      <h4 className="text-xs font-bold text-sky-950 uppercase tracking-wider flex items-center gap-1.5 font-mono">
+                        <TrendingUp className="w-4 h-4 text-sky-700" />
                         <span>Ustunlar Bo'yicha Taqqoslash (Bar Chart)</span>
                       </h4>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-sky-800 font-mono font-medium">
                         {numericColumns.length > 0
                           ? `Ustunlar: ${numericColumns.map((c) => c.name).join(', ')}`
                           : 'Raqamli ustunlar kutilmoqda'}
@@ -346,19 +341,20 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
                     <div className="h-64 w-full">
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={numericRowData} margin={{ top: 10, right: 10, left: -10, bottom: 20 }}>
-                          <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.5} />
-                          <XAxis dataKey="name" stroke="#94a3b8" fontSize={10} tickLine={false} />
-                          <YAxis stroke="#94a3b8" fontSize={10} tickLine={false} />
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e0f2fe" opacity={0.8} />
+                          <XAxis dataKey="name" stroke="#0369a1" fontSize={10} tickLine={false} />
+                          <YAxis stroke="#0369a1" fontSize={10} tickLine={false} />
                           <Tooltip
                             contentStyle={{
-                              backgroundColor: '#0f172a',
-                              borderColor: '#334155',
+                              backgroundColor: '#ffffff',
+                              borderColor: '#bae6fd',
                               borderRadius: '0.75rem',
-                              color: '#fff',
+                              color: '#082f49',
                               fontSize: '12px',
+                              boxShadow: '0 4px 6px -1px rgba(2, 132, 199, 0.1)',
                             }}
                           />
-                          <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }} />
+                          <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '10px', color: '#082f49' }} />
                           {numericColumns.map((col, idx) => (
                             <Bar
                               key={col.key}
@@ -371,7 +367,7 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
                       </ResponsiveContainer>
                     </div>
                   ) : (
-                    <div className="h-64 flex items-center justify-center text-xs text-slate-500">
+                    <div className="h-64 flex items-center justify-center text-xs text-sky-900 font-mono">
                       Raqamli ustunlar mavjud emas
                     </div>
                   )}
@@ -380,16 +376,16 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
 
               {/* 4. INSTRUMENT: Kategoriyalar Taqsimoti (Pie/Donut Chart) */}
               {isInstrumentActive('pie_distribution') && (
-                <div className="p-5 bg-slate-900 border border-slate-800 rounded-2xl shadow-lg">
+                <div className="p-5 bg-white border border-sky-200 rounded-2xl shadow-sm">
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
-                        <PieChartIcon className="w-4 h-4 text-emerald-400" />
+                      <h4 className="text-xs font-bold text-sky-950 uppercase tracking-wider flex items-center gap-1.5 font-mono">
+                        <PieChartIcon className="w-4 h-4 text-sky-700" />
                         <span>
                           {primaryCategory ? `"${primaryCategory.name}" Taqsimoti` : "Kategoriyalar Taqsimoti"}
                         </span>
                       </h4>
-                      <p className="text-[11px] text-slate-400">
+                      <p className="text-[11px] text-sky-800 font-mono font-medium">
                         {primaryCategory ? `${primaryCategory.uniqueCount} ta takrorlanmas qiymat` : "Avtomatik tahlil"}
                       </p>
                     </div>
@@ -418,18 +414,19 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
                             </Pie>
                             <Tooltip
                               contentStyle={{
-                                backgroundColor: '#0f172a',
-                                borderColor: '#334155',
+                                backgroundColor: '#ffffff',
+                                borderColor: '#bae6fd',
                                 borderRadius: '0.75rem',
-                                color: '#fff',
+                                color: '#082f49',
                                 fontSize: '12px',
+                                boxShadow: '0 4px 6px -1px rgba(2, 132, 199, 0.1)',
                               }}
                             />
                           </PieChart>
                         </ResponsiveContainer>
                       </div>
 
-                      <div className="w-full sm:w-1/2 space-y-1.5 pl-2 max-h-56 overflow-y-auto">
+                      <div className="w-full sm:w-1/2 space-y-1.5 pl-2 max-h-56 overflow-y-auto custom-scrollbar">
                         {primaryCategory.distribution.map((item, idx) => (
                           <div
                             key={item.name}
@@ -437,7 +434,7 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
                               onSelectCellInspector &&
                               onSelectCellInspector(primaryCategory.key, primaryCategory.name, item.name)
                             }
-                            className="flex items-center justify-between text-xs p-1.5 rounded-lg bg-slate-950/40 hover:bg-slate-800/80 border border-slate-800/60 cursor-pointer transition"
+                            className="flex items-center justify-between text-xs p-1.5 rounded-lg bg-sky-50 hover:bg-sky-100 border border-sky-200 cursor-pointer transition"
                             title="Tahlil qilish uchun bosing"
                           >
                             <div className="flex items-center gap-2 truncate">
@@ -445,9 +442,9 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
                                 className="w-2.5 h-2.5 rounded-full shrink-0"
                                 style={{ backgroundColor: CHART_COLORS[idx % CHART_COLORS.length] }}
                               />
-                              <span className="text-slate-300 truncate">{item.name}</span>
+                              <span className="text-sky-950 font-semibold truncate">{item.name}</span>
                             </div>
-                            <span className="font-mono text-slate-400 text-[11px] shrink-0">
+                            <span className="font-mono text-sky-950 font-bold text-[11px] shrink-0">
                               {item.value} ({item.percent}%)
                             </span>
                           </div>
@@ -455,7 +452,7 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
                       </div>
                     </div>
                   ) : (
-                    <div className="h-64 flex items-center justify-center text-xs text-slate-500">
+                    <div className="h-64 flex items-center justify-center text-xs text-sky-900 font-mono">
                       Taqsimot yaratish uchun matnli ustunlar yetarli emas
                     </div>
                   )}

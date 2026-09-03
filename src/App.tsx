@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { AuthUser, UserTable, TableRowData, ViewMode, ColumnFilter, CellInspection, ActivityLog } from './types';
-import { getSavedTables, saveTables, getSavedAuth, saveAuth } from './utils/storage';
+import { getSavedTables, saveTables, getSavedAuth, saveAuth, getFormattedDateTime } from './utils/storage';
 import {
   subscribeToFirebaseTables,
   saveTableToFirebase,
@@ -24,7 +24,7 @@ import { GlobalDashboardOverview } from './components/GlobalDashboardOverview';
 import { CellInspectorModal } from './components/CellInspectorModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { AuditLogsModal } from './components/AuditLogsModal';
-import { Table as TableIcon, BarChart3, Plus, Trash2, Edit3, Filter, Sparkles, SlidersHorizontal, WifiOff, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Table as TableIcon, Plus, Trash2, Edit3, WifiOff } from 'lucide-react';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getSavedAuth());
@@ -96,29 +96,32 @@ export default function App() {
     };
   }, []);
 
-  // Real-time Firestore synchronization for tables
+  // Real-time Firebase tables subscription
   useEffect(() => {
+    if (!currentUser) return;
+
     const unsubscribe = subscribeToFirebaseTables(
       (remoteTables, status) => {
-        setSyncStatus(status);
-        // If remote has data, update tables
-        if (remoteTables) {
+        if (remoteTables && remoteTables.length > 0) {
           setTables(remoteTables);
           saveTables(remoteTables);
         }
+        setSyncStatus(status);
       },
       (err) => {
-        console.warn('Firebase sync notice:', err);
+        console.warn('Firebase realtime subscription fallback to local cache:', err);
       }
     );
 
     return () => {
       unsubscribe();
     };
-  }, []);
+  }, [currentUser]);
 
-  // Real-time Firestore synchronization for activity logs
+  // Real-time Firebase audit logs subscription
   useEffect(() => {
+    if (!currentUser) return;
+
     const unsubscribeLogs = subscribeToFirebaseLogs(
       (remoteLogs) => {
         if (remoteLogs) {
@@ -126,16 +129,16 @@ export default function App() {
         }
       },
       (err) => {
-        console.warn('Firebase logs notice:', err);
+        console.warn('Firebase logs subscription fallback:', err);
       }
     );
 
     return () => {
       unsubscribeLogs();
     };
-  }, []);
+  }, [currentUser]);
 
-  // Sync active table if tables change
+  // Set default selected table when tables change
   useEffect(() => {
     if (tables.length > 0) {
       if (!selectedTableId || !tables.some((t) => t.id === selectedTableId)) {
@@ -144,55 +147,85 @@ export default function App() {
     } else {
       setSelectedTableId('');
     }
-    saveTables(tables);
   }, [tables, selectedTableId]);
 
-  // Current active table
+  // Save tables locally whenever they change
+  const updateTablesState = (newTables: UserTable[]) => {
+    setTables(newTables);
+    saveTables(newTables);
+  };
+
+  // Activity logger helper
+  const trackAction = (
+    actionType: ActivityLog['actionType'],
+    actionTitle: string,
+    tableName?: string,
+    tableId?: string,
+    details?: string
+  ) => {
+    if (!currentUser) return;
+    const log: ActivityLog = {
+      id: 'log_' + Date.now() + '_' + Math.random().toString(36).substr(2, 4),
+      timestamp: new Date().toISOString(),
+      username: currentUser.username,
+      userRole: currentUser.role,
+      actionType,
+      actionTitle,
+      tableName,
+      tableId,
+      details,
+    };
+
+    setLogs((prev) => [log, ...prev]);
+
+    logActivityToFirebase(log).catch((err) => {
+      console.warn('Local log recorded, cloud pending:', err);
+    });
+  };
+
+  // Auth Handlers
+  const handleLoginSuccess = (user: AuthUser) => {
+    setCurrentUser(user);
+    saveAuth(user);
+    trackAction('login', `Foydalanuvchi tizimga kirdi`, undefined, undefined, `Rol: ${user.role}`);
+  };
+
+  const handleLogout = () => {
+    if (currentUser) {
+      trackAction('logout', `Foydalanuvchi tizimdan chiqdi`);
+    }
+    setCurrentUser(null);
+    saveAuth(null);
+  };
+
+  // Active current table
   const currentTable = useMemo(() => {
-    return tables.find((t) => t.id === selectedTableId) || tables[0];
+    return tables.find((t) => t.id === selectedTableId) || tables[0] || null;
   }, [tables, selectedTableId]);
 
-  // Current active filters for active table
+  // Current filters for active table
   const currentFilters = useMemo(() => {
     if (!currentTable) return [];
     return tableFilters[currentTable.id] || [];
   }, [tableFilters, currentTable]);
 
   // Filtered rows for active table
-  const filteredTable = useMemo<UserTable | null>(() => {
+  const filteredTable = useMemo(() => {
     if (!currentTable) return null;
     if (currentFilters.length === 0) return currentTable;
 
     const filteredRows = currentTable.rows.filter((row) => {
-      return currentFilters.every((f) => {
-        const rawVal = (row.values[f.columnKey] || '').trim();
-        const displayVal = !rawVal || rawVal.toLowerCase() === 'nomsiz' ? 'nomsiz' : rawVal;
+      return currentFilters.every((filter) => {
+        if (!filter.selectedValues || filter.selectedValues.length === 0) return true;
+        const cellValue = row.values[filter.columnKey] || '';
+        const isNomsiz = !cellValue || cellValue.toLowerCase() === 'nomsiz';
 
-        if (f.selectedValues && f.selectedValues.length > 0) {
-          if (!f.selectedValues.includes(displayVal)) {
-            return false;
+        return filter.selectedValues.some((selectedVal) => {
+          if (selectedVal.toLowerCase() === 'nomsiz') {
+            return isNomsiz;
           }
-        }
-
-        if (f.textQuery && f.textQuery.trim()) {
-          const q = f.textQuery.toLowerCase().trim();
-          if (!displayVal.toLowerCase().includes(q)) {
-            return false;
-          }
-        }
-
-        if (f.numericMin !== undefined || f.numericMax !== undefined) {
-          const num = parseFloat(rawVal.replace(/[^0-9.-]+/g, ''));
-          if (isNaN(num)) return false;
-          if (f.numericMin !== undefined && num < f.numericMin) {
-            return false;
-          }
-          if (f.numericMax !== undefined && num > f.numericMax) {
-            return false;
-          }
-        }
-
-        return true;
+          return cellValue.trim().toLowerCase() === selectedVal.trim().toLowerCase();
+        });
       });
     });
 
@@ -202,62 +235,20 @@ export default function App() {
     };
   }, [currentTable, currentFilters]);
 
-  // Helper to safely dispatch audit log
-  const trackAction = (
-    actionType: ActivityLog['actionType'],
-    actionTitle: string,
-    tableName?: string,
-    tableId?: string,
-    details?: string
-  ) => {
-    if (!currentUser) return;
-    logActivityToFirebase({
-      username: currentUser.username,
-      actionType,
-      actionTitle,
-      tableName,
-      tableId,
-      details,
-    });
-  };
-
-  // Handle Login
-  const handleLoginSuccess = (user: AuthUser) => {
-    setCurrentUser(user);
-    saveAuth(user);
-    logActivityToFirebase({
-      username: user.username,
-      actionType: 'login',
-      actionTitle: `${user.name} (${user.username}) tizimga kirdi`,
-      details: `Rol: ${user.role === 'admin' ? 'Administrator (daewoouser)' : 'Nazoratchi (admindw)'}`,
-    });
-  };
-
-  // Handle Logout
-  const handleLogout = () => {
-    setCurrentUser(null);
-    saveAuth(null);
-  };
-
-  // Handle Table Created
+  // Table CRUD handlers
   const handleTableCreated = async (newTable: UserTable) => {
-    if (isReadOnly) return;
-    const updated = [newTable, ...tables];
-    setTables(updated);
+    const updated = [...tables, newTable];
+    updateTablesState(updated);
     setSelectedTableId(newTable.id);
-    setViewMode('split');
-    saveTables(updated);
 
-    // Track activity log
     trackAction(
       'create_table',
-      `"${newTable.name}" yangi jadvali yaratildi`,
+      `Yangi "${newTable.name}" jadvali yaratildi`,
       newTable.name,
       newTable.id,
-      `${newTable.columns.length} ta ustun (${newTable.columns.map((c) => c.name).join(', ')})`
+      `Jami ${newTable.columns.length} ta ustun bilan yaratildi`
     );
 
-    // Persist to Firebase (offline supported)
     try {
       await saveTableToFirebase(newTable);
     } catch (err) {
@@ -265,24 +256,13 @@ export default function App() {
     }
   };
 
-  // Handle Table Updated (Name, columns, reordering)
   const handleTableUpdated = async (updatedTable: UserTable, changeSummary: string) => {
-    if (isReadOnly) return;
     const updated = tables.map((t) => (t.id === updatedTable.id ? updatedTable : t));
-    setTables(updated);
-    saveTables(updated);
-
-    // Clean up filters if columns were deleted
-    setTableFilters((prev) => {
-      const existingFilters = prev[updatedTable.id] || [];
-      const validColKeys = new Set(updatedTable.columns.map((c) => c.key));
-      const cleaned = existingFilters.filter((f) => validColKeys.has(f.columnKey));
-      return { ...prev, [updatedTable.id]: cleaned };
-    });
+    updateTablesState(updated);
 
     trackAction(
       'edit_table',
-      `"${updatedTable.name}" jadvali tahrirlandi`,
+      `"${updatedTable.name}" jadvali strukturasi o'zgartirildi`,
       updatedTable.name,
       updatedTable.id,
       changeSummary
@@ -295,155 +275,117 @@ export default function App() {
     }
   };
 
-  // Handle Record Added
-  const handleRecordAdded = async (tableId: string, newRow: TableRowData) => {
-    if (isReadOnly) return;
-    let targetUpdatedTable: UserTable | null = null;
-    const updated = tables.map((t) => {
-      if (t.id === tableId) {
-        const updatedTable: UserTable = {
-          ...t,
-          updatedAt: new Date().toISOString(),
-          rows: [...t.rows, newRow],
-        };
-        targetUpdatedTable = updatedTable;
-        return updatedTable;
-      }
-      return t;
-    });
+  const handleRecordAdded = async (tableId: string, row: TableRowData) => {
+    const target = tables.find((t) => t.id === tableId);
+    if (!target) return;
 
-    setTables(updated);
-    saveTables(updated);
+    const updatedTable: UserTable = {
+      ...target,
+      updatedAt: new Date().toISOString(),
+      rows: [...target.rows, row],
+    };
 
-    if (targetUpdatedTable) {
-      // Track activity log
-      const previewValues = Object.entries(newRow.values)
-        .slice(0, 3)
-        .map(([k, v]) => v)
-        .filter(Boolean)
-        .join(', ');
+    const updated = tables.map((t) => (t.id === tableId ? updatedTable : t));
+    updateTablesState(updated);
 
-      trackAction(
-        'add_row',
-        `"${(targetUpdatedTable as UserTable).name}" jadvaliga yangi yozuv qo'shildi`,
-        (targetUpdatedTable as UserTable).name,
-        (targetUpdatedTable as UserTable).id,
-        previewValues ? `Kiritilgan ma'lumotlar: ${previewValues}` : undefined
-      );
+    const firstCustomVal = row.values[target.columns[2]?.key] || 'yozuv';
+    trackAction(
+      'add_row',
+      `"${target.name}" jadvaliga yangi qator qo'shildi`,
+      target.name,
+      target.id,
+      `Yozuv: ${firstCustomVal} (№${row.values[target.columns[0]?.key]})`
+    );
 
-      try {
-        await saveTableToFirebase(targetUpdatedTable);
-      } catch (err) {
-        console.warn('Queued locally for sync:', err);
-      }
+    try {
+      await saveTableToFirebase(updatedTable);
+    } catch (err) {
+      console.warn('Queued locally for sync:', err);
     }
   };
 
-  // Handle Record Updated
   const handleRecordUpdated = async (tableId: string, updatedRow: TableRowData) => {
-    if (isReadOnly) return;
-    let targetUpdatedTable: UserTable | null = null;
-    const updated = tables.map((t) => {
-      if (t.id === tableId) {
-        const updatedTable: UserTable = {
-          ...t,
-          updatedAt: new Date().toISOString(),
-          rows: t.rows.map((r) => (r.id === updatedRow.id ? updatedRow : r)),
-        };
-        targetUpdatedTable = updatedTable;
-        return updatedTable;
-      }
-      return t;
-    });
+    const target = tables.find((t) => t.id === tableId);
+    if (!target) return;
 
-    setTables(updated);
-    saveTables(updated);
+    const updatedRows = target.rows.map((r) => (r.id === updatedRow.id ? updatedRow : r));
+    const updatedTable: UserTable = {
+      ...target,
+      updatedAt: new Date().toISOString(),
+      rows: updatedRows,
+    };
 
-    if (targetUpdatedTable) {
-      const previewValues = Object.entries(updatedRow.values)
-        .slice(0, 3)
-        .map(([k, v]) => v)
-        .filter(Boolean)
-        .join(', ');
+    const updated = tables.map((t) => (t.id === tableId ? updatedTable : t));
+    updateTablesState(updated);
 
-      trackAction(
-        'edit_row',
-        `"${(targetUpdatedTable as UserTable).name}" jadvalida yozuv tahrirlandi`,
-        (targetUpdatedTable as UserTable).name,
-        (targetUpdatedTable as UserTable).id,
-        `Yangi qiymatlar: ${previewValues}`
-      );
+    trackAction(
+      'edit_row',
+      `"${target.name}" jadvalidagi yozuv tahrirlandi`,
+      target.name,
+      target.id,
+      `Qator: №${updatedRow.values[target.columns[0]?.key]}`
+    );
 
-      try {
-        await saveTableToFirebase(targetUpdatedTable);
-      } catch (err) {
-        console.warn('Queued locally for sync:', err);
-      }
+    try {
+      await saveTableToFirebase(updatedTable);
+    } catch (err) {
+      console.warn('Queued locally for sync:', err);
     }
   };
 
-  // Handle Record Deleted
   const handleDeleteRecord = async (tableId: string, rowId: string) => {
-    if (isReadOnly) return;
-    let targetUpdatedTable: UserTable | null = null;
-    const targetTableObj = tables.find((t) => t.id === tableId);
-    const targetRow = targetTableObj?.rows.find((r) => r.id === rowId);
+    const target = tables.find((t) => t.id === tableId);
+    if (!target) return;
 
-    const updated = tables.map((t) => {
-      if (t.id === tableId) {
-        const updatedTable: UserTable = {
-          ...t,
-          updatedAt: new Date().toISOString(),
-          rows: t.rows.filter((r) => r.id !== rowId),
-        };
-        targetUpdatedTable = updatedTable;
-        return updatedTable;
-      }
-      return t;
-    });
+    const deletedRow = target.rows.find((r) => r.id === rowId);
+    const seqNum = deletedRow ? deletedRow.values[target.columns[0]?.key] : '';
 
-    setTables(updated);
-    saveTables(updated);
+    const updatedRows = target.rows
+      .filter((r) => r.id !== rowId)
+      .map((r, idx) => ({
+        ...r,
+        values: {
+          ...r.values,
+          [target.columns[0]?.key || 'c1']: (idx + 1).toString(),
+        },
+      }));
 
-    if (targetUpdatedTable) {
-      const previewValues = targetRow
-        ? Object.values(targetRow.values).slice(0, 2).join(', ')
-        : '';
+    const updatedTable: UserTable = {
+      ...target,
+      updatedAt: new Date().toISOString(),
+      rows: updatedRows,
+    };
 
-      trackAction(
-        'delete_row',
-        `"${(targetUpdatedTable as UserTable).name}" jadvalidan yozuv o'chirildi`,
-        (targetUpdatedTable as UserTable).name,
-        (targetUpdatedTable as UserTable).id,
-        previewValues ? `O'chirilgan qator: ${previewValues}` : undefined
-      );
+    const updated = tables.map((t) => (t.id === tableId ? updatedTable : t));
+    updateTablesState(updated);
 
-      try {
-        await saveTableToFirebase(targetUpdatedTable);
-      } catch (err) {
-        console.warn('Queued locally for sync:', err);
-      }
+    trackAction(
+      'delete_row',
+      `"${target.name}" jadvalidan qator o'chirildi`,
+      target.name,
+      target.id,
+      `O'chirilgan qator: №${seqNum || 'nomalum'}`
+    );
+
+    try {
+      await saveTableToFirebase(updatedTable);
+    } catch (err) {
+      console.warn('Queued locally for sync:', err);
     }
   };
 
-  // Handle Table Deleted Confirmation
   const confirmDeleteTable = async (tableId: string) => {
-    if (isReadOnly) return;
-    const targetTableObj = tables.find((t) => t.id === tableId);
+    const target = tables.find((t) => t.id === tableId);
     const updated = tables.filter((t) => t.id !== tableId);
-    setTables(updated);
-    saveTables(updated);
-    if (selectedTableId === tableId) {
-      setSelectedTableId(updated.length > 0 ? updated[0].id : '');
-    }
+    updateTablesState(updated);
 
-    if (targetTableObj) {
+    if (target) {
       trackAction(
         'delete_table',
-        `"${targetTableObj.name}" jadvali butunlay o'chirildi`,
-        targetTableObj.name,
-        targetTableObj.id,
-        `${targetTableObj.rows.length} ta yozuv o'chirildi`
+        `"${target.name}" jadvali butunlay o'chirildi`,
+        target.name,
+        target.id,
+        `${target.rows.length} ta yozuv o'chirildi`
       );
     }
 
@@ -454,22 +396,16 @@ export default function App() {
     }
   };
 
-  // Handle Clear All Tables
   const confirmClearAll = async () => {
-    if (isReadOnly) return;
     const tableIds = tables.map((t) => t.id);
-    const totalCount = tables.length;
-    setTables([]);
-    setSelectedTableId('');
-    setTableFilters({});
-    saveTables([]);
+    updateTablesState([]);
 
     trackAction(
       'clear_all',
-      `Barcha jadvallar tozalab tashlandi`,
+      `Barcha jadvallar tozalandi va o'chirildi`,
       undefined,
       undefined,
-      `Jami ${totalCount} ta jadval o'chirildi`
+      `Jami ${tableIds.length} ta jadval o'chirildi`
     );
 
     try {
@@ -502,13 +438,23 @@ export default function App() {
     }
   };
 
+  const handleExportExcelLogged = (table: UserTable, rowCount: number) => {
+    trackAction(
+      'export_excel',
+      `"${table.name}" jadvali Excel .xlsx formatida eksport qilindi`,
+      table.name,
+      table.id,
+      `Jami ${rowCount} ta qator eksport qilindi`
+    );
+  };
+
   // If user is not logged in -> Auth Screen
   if (!currentUser) {
     return <AuthScreen onLoginSuccess={handleLoginSuccess} />;
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans">
+    <div className="min-h-screen bg-[#edf6fe] text-sky-950 flex flex-col font-mono selection:bg-sky-200 selection:text-sky-900">
       {/* Top Navbar */}
       <Navbar
         user={currentUser}
@@ -535,9 +481,9 @@ export default function App() {
 
       {/* Offline Alert Banner if offline */}
       {!syncStatus.isOnline && (
-        <div className="bg-amber-950/80 border-b border-amber-800/80 px-4 py-2 text-xs text-amber-200 flex items-center justify-between gap-3">
+        <div className="bg-sky-200/90 border-b border-sky-300 px-4 py-2 text-xs text-sky-950 flex items-center justify-between gap-3 font-mono">
           <div className="flex items-center gap-2 max-w-4xl mx-auto">
-            <WifiOff className="w-4 h-4 text-amber-400 shrink-0" />
+            <WifiOff className="w-4 h-4 text-sky-800 shrink-0" />
             <span>
               <strong>Offlayn rejimdasiz:</strong> Barcha kiritilgan va tahrirlangan ma'lumotlar qurilmangizda saqlanadi. Internet ulanganda Google Firebase bilan avtomatik sinxronlanadi.
             </span>
@@ -577,15 +523,16 @@ export default function App() {
               setEditingTable(table);
               setIsEditTableOpen(true);
             }}
+            onExportExcelLogged={handleExportExcelLogged}
             isReadOnly={isReadOnly}
           />
         ) : (
           /* Active Table & Dynamic Analytics View */
           <div className="space-y-6">
             {/* Table Selection Tabs & Quick Actions */}
-            <div className="flex items-center justify-between gap-3 overflow-x-auto pb-1 border-b border-slate-800 scrollbar-none">
+            <div className="flex items-center justify-between gap-3 overflow-x-auto pb-1 border-b border-sky-200 custom-scrollbar font-mono">
               <div className="flex items-center gap-2">
-                <span className="text-xs text-slate-400 font-semibold uppercase tracking-wider mr-1 hidden sm:inline">
+                <span className="text-xs text-sky-900 font-bold uppercase tracking-wider mr-1 hidden sm:inline font-mono">
                   Jadvallar:
                 </span>
                 {tables.map((tbl) => {
@@ -595,36 +542,36 @@ export default function App() {
                     <button
                       key={tbl.id}
                       onClick={() => setSelectedTableId(tbl.id)}
-                      className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition cursor-pointer border ${
+                      className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition cursor-pointer border font-mono ${
                         selectedTableId === tbl.id
-                          ? 'bg-blue-600 text-white border-blue-500 shadow-md shadow-blue-600/20'
-                          : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200 hover:bg-slate-800'
+                          ? 'bg-sky-600 text-white border-sky-700 shadow-xs'
+                          : 'bg-white text-sky-900 border-sky-300 hover:bg-sky-100'
                       }`}
                     >
                       <TableIcon className="w-3.5 h-3.5" />
                       <span>{tbl.name}</span>
-                      <span className="text-[10px] px-1.5 py-0.2 rounded-md bg-black/30 font-mono">
+                      <span className={`text-[10px] px-1.5 py-0.2 rounded-md font-mono ${selectedTableId === tbl.id ? 'bg-sky-700 text-white' : 'bg-sky-100 text-sky-900'}`}>
                         {tbl.rows.length}
                       </span>
                       {hasActiveFilters && (
-                        <span className="w-2 h-2 rounded-full bg-amber-400" title="Filtr faol" />
+                        <span className="w-2 h-2 rounded-full bg-sky-300" title="Filtr faol" />
                       )}
                     </button>
                   );
                 })}
               </div>
 
-              <div className="flex items-center gap-2 shrink-0">
+              <div className="flex items-center gap-2 shrink-0 font-mono">
                 {!isReadOnly && currentTable && (
                   <button
                     onClick={() => {
                       setEditingTable(currentTable);
                       setIsEditTableOpen(true);
                     }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 transition whitespace-nowrap cursor-pointer shadow-sm"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-sky-900 bg-white hover:bg-sky-100 border border-sky-300 transition whitespace-nowrap cursor-pointer shadow-xs"
                     title="Jadval nomini, ustunlarini tahrirlash yoki yangi ustun qo'shish"
                   >
-                    <Edit3 className="w-3.5 h-3.5 text-indigo-400" />
+                    <Edit3 className="w-3.5 h-3.5 text-sky-700" />
                     <span>Jadvalni tahrirlash</span>
                   </button>
                 )}
@@ -632,9 +579,9 @@ export default function App() {
                 {!isReadOnly && (
                   <button
                     onClick={() => setIsCreateTableOpen(true)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-blue-400 bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 transition whitespace-nowrap cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-sky-600 hover:bg-sky-700 border border-sky-700 transition whitespace-nowrap cursor-pointer shadow-xs"
                   >
-                    <Plus className="w-3.5 h-3.5" />
+                    <Plus className="w-3.5 h-3.5 text-white" />
                     <span>Yangi jadval</span>
                   </button>
                 )}
@@ -648,7 +595,7 @@ export default function App() {
                         targetTable: currentTable,
                       })
                     }
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 transition whitespace-nowrap cursor-pointer"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold text-sky-900 hover:text-red-700 bg-white hover:bg-sky-100 border border-sky-300 transition whitespace-nowrap cursor-pointer shadow-xs"
                     title="Joriy jadvalni o'chirish"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -659,27 +606,27 @@ export default function App() {
             </div>
 
             {/* Mobile View Mode Switcher */}
-            <div className="flex md:hidden items-center justify-between p-1.5 bg-slate-900 rounded-xl border border-slate-800 text-xs">
+            <div className="flex md:hidden items-center justify-between p-1.5 bg-white rounded-xl border border-sky-300 text-xs font-mono shadow-xs">
               <button
                 onClick={() => setViewMode('split')}
-                className={`flex-1 py-1.5 text-center font-medium rounded-lg ${
-                  viewMode === 'split' ? 'bg-blue-600 text-white' : 'text-slate-400'
+                className={`flex-1 py-1.5 text-center font-bold rounded-lg ${
+                  viewMode === 'split' ? 'bg-sky-600 text-white shadow-xs' : 'text-sky-900'
                 }`}
               >
                 Yonma-yon
               </button>
               <button
                 onClick={() => setViewMode('table_only')}
-                className={`flex-1 py-1.5 text-center font-medium rounded-lg ${
-                  viewMode === 'table_only' ? 'bg-blue-600 text-white' : 'text-slate-400'
+                className={`flex-1 py-1.5 text-center font-bold rounded-lg ${
+                  viewMode === 'table_only' ? 'bg-sky-600 text-white shadow-xs' : 'text-sky-900'
                 }`}
               >
                 Jadval
               </button>
               <button
                 onClick={() => setViewMode('dashboard_only')}
-                className={`flex-1 py-1.5 text-center font-medium rounded-lg ${
-                  viewMode === 'dashboard_only' ? 'bg-blue-600 text-white' : 'text-slate-400'
+                className={`flex-1 py-1.5 text-center font-bold rounded-lg ${
+                  viewMode === 'dashboard_only' ? 'bg-sky-600 text-white shadow-xs' : 'text-sky-900'
                 }`}
               >
                 Dashboard
@@ -709,6 +656,7 @@ export default function App() {
                           setEditingTable(currentTable);
                           setIsEditTableOpen(true);
                         }}
+                        onExportExcelLogged={handleExportExcelLogged}
                         onInspectCell={(colKey, colName, val, rIdx) => {
                           setActiveCellInspection({
                             tableId: currentTable.id,
@@ -763,6 +711,7 @@ export default function App() {
                       setEditingTable(currentTable);
                       setIsEditTableOpen(true);
                     }}
+                    onExportExcelLogged={handleExportExcelLogged}
                     onInspectCell={(colKey, colName, val, rIdx) => {
                       setActiveCellInspection({
                         tableId: currentTable.id,

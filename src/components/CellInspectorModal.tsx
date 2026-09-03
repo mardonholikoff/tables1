@@ -1,19 +1,13 @@
 import React from 'react';
 import {
   Sparkles,
-  Search,
   Filter,
-  BarChart2,
-  ListFilter,
   X,
-  CheckCircle2,
   Percent,
   Layers,
-  ArrowRight,
   TrendingUp,
 } from 'lucide-react';
 import { CellInspection, UserTable } from '../types';
-import { CHART_COLORS } from '../utils/analytics';
 
 interface CellInspectorModalProps {
   inspection: CellInspection | null;
@@ -77,160 +71,131 @@ export const CellInspectorModal: React.FC<CellInspectorModalProps> = ({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="bg-slate-900 border border-slate-700/80 rounded-3xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-sky-950/40 backdrop-blur-md animate-in fade-in duration-200 font-mono text-sky-950">
+      <div className="bg-white border border-sky-300 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
         {/* Modal Header */}
-        <div className="p-5 bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border-b border-slate-800 flex items-center justify-between">
+        <div className="p-5 bg-sky-50 border-b border-sky-200 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 text-indigo-400 border border-indigo-500/30 flex items-center justify-center">
-              <Sparkles className="w-5 h-5" />
+            <div className="w-10 h-10 rounded-xl bg-sky-600 text-white font-bold flex items-center justify-center border border-sky-700">
+              <Sparkles className="w-5 h-5 text-white" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white tracking-tight">
+                <h3 className="text-base font-bold text-sky-950 tracking-tight font-mono">
                   Katakcha Tahlili (Cell Inspector)
                 </h3>
-                <span className="text-[10px] font-mono px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300 border border-blue-500/30">
+                <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-sky-100 text-sky-900 border border-sky-300">
                   Qator #{rowIndex + 1}
                 </span>
               </div>
-              <p className="text-xs text-slate-400">
-                Ustun: <strong className="text-slate-200">{columnName}</strong>
+              <p className="text-xs text-sky-900 font-medium">
+                Ustun: <strong className="text-sky-950">{columnName}</strong>
               </p>
             </div>
           </div>
 
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-white rounded-xl hover:bg-slate-800 transition cursor-pointer"
+            className="p-2 text-sky-900 hover:bg-sky-200 rounded-xl transition cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Modal Body */}
-        <div className="p-5 overflow-y-auto space-y-4">
-          {/* Target Value Display */}
-          <div className="p-4 bg-slate-950/80 rounded-2xl border border-slate-800 flex items-center justify-between">
-            <div>
-              <span className="text-xs text-slate-400 block mb-1">Tanlangan katak qiymati:</span>
-              <div className="text-lg font-bold text-white break-all flex items-center gap-2">
-                {isNomsiz ? (
-                  <span className="px-2.5 py-1 rounded-md text-xs font-mono bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                    nomsiz
-                  </span>
-                ) : (
-                  <span>{value}</span>
-                )}
-              </div>
+        {/* Value Spotlight Card */}
+        <div className="p-6 space-y-5 overflow-y-auto custom-scrollbar font-mono">
+          <div className="p-4 bg-sky-50 rounded-2xl border border-sky-200 space-y-1">
+            <span className="text-[10px] font-bold text-sky-900 uppercase tracking-wider block font-mono">
+              Tanlangan Qiymat
+            </span>
+            <div className="text-xl font-bold text-sky-950 break-words font-mono">
+              {value || <em className="text-sky-400">nomsiz</em>}
             </div>
-
-            <button
-              onClick={() => {
-                onApplyAsFilter(columnKey, isNomsiz ? 'nomsiz' : value);
-                onClose();
-              }}
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition cursor-pointer shrink-0 ml-3"
-            >
-              <Filter className="w-3.5 h-3.5" />
-              <span>Faqat shuni filtrla</span>
-            </button>
+            <div className="text-xs text-sky-900 pt-1 font-medium">
+              Ushbu ustun bo'yicha takrorlanish: <strong className="text-sky-950 font-bold">{occurrences} ta</strong> ({percentage}%)
+            </div>
           </div>
 
-          {/* Quick Frequency KPIs */}
+          {/* Quick Metrics Grid */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-2xl">
-              <span className="text-xs text-slate-400 flex items-center gap-1.5 mb-1">
-                <Layers className="w-3.5 h-3.5 text-blue-400" />
-                Ushbu ustundagi uchrashi
-              </span>
-              <div className="text-2xl font-bold font-mono text-white">
-                {occurrences} <span className="text-xs font-normal text-slate-400">/ {totalRows} qatorda</span>
+            <div className="p-3.5 bg-white border border-sky-200 rounded-xl space-y-1 shadow-xs">
+              <div className="flex items-center gap-1.5 text-xs text-sky-900 font-bold">
+                <Layers className="w-3.5 h-3.5 text-sky-700" />
+                <span>Takrorlanish soni</span>
+              </div>
+              <div className="text-lg font-bold text-sky-950">
+                {occurrences} <span className="text-xs text-sky-900 font-medium font-mono">/ {totalRows} qatordan</span>
               </div>
             </div>
 
-            <div className="p-3.5 bg-slate-950/60 border border-slate-800 rounded-2xl">
-              <span className="text-xs text-slate-400 flex items-center gap-1.5 mb-1">
-                <Percent className="w-3.5 h-3.5 text-emerald-400" />
-                Ustundagi ulushi
-              </span>
-              <div className="text-2xl font-bold font-mono text-emerald-400">
+            <div className="p-3.5 bg-white border border-sky-200 rounded-xl space-y-1 shadow-xs">
+              <div className="flex items-center gap-1.5 text-xs text-sky-900 font-bold">
+                <Percent className="w-3.5 h-3.5 text-sky-700" />
+                <span>Jadvaldagi ulushi</span>
+              </div>
+              <div className="text-lg font-bold text-sky-950">
                 {percentage}%
               </div>
             </div>
           </div>
 
-          {/* Numeric Statistics if number */}
+          {/* If numeric, show deep stats */}
           {numericStats && (
-            <div className="p-4 bg-slate-950/60 border border-slate-800 rounded-2xl space-y-2">
-              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-1.5">
-                <TrendingUp className="w-3.5 h-3.5 text-indigo-400" />
-                Raqamli Ko'rsatkichlar Taqqoslashi
-              </h4>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="p-2 bg-slate-900 rounded-xl">
-                  <span className="text-slate-400 block text-[11px]">Ustun o'rtacha qiymati:</span>
-                  <span className="text-white font-mono font-bold">{numericStats.avg}</span>
+            <div className="p-4 bg-sky-50 rounded-2xl border border-sky-200 space-y-3">
+              <div className="flex items-center gap-2 text-xs font-bold text-sky-950">
+                <TrendingUp className="w-4 h-4 text-sky-700" />
+                <span>Raqamli Ko'rsatkichlar & Taqqoslash</span>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center text-xs font-mono">
+                <div className="p-2 bg-white rounded-xl border border-sky-200">
+                  <span className="text-[10px] text-sky-800 block font-bold">O'rtacha</span>
+                  <span className="font-bold text-sky-950">{numericStats.avg}</span>
                 </div>
-                <div className="p-2 bg-slate-900 rounded-xl">
-                  <span className="text-slate-400 block text-[11px]">O'rtachadan farqi:</span>
-                  <span
-                    className={`font-mono font-bold ${
-                      Number(numericStats.diffFromAvgPercent) >= 0
-                        ? 'text-emerald-400'
-                        : 'text-rose-400'
-                    }`}
-                  >
-                    {Number(numericStats.diffFromAvgPercent) >= 0 ? '+' : ''}
-                    {numericStats.diffFromAvgPercent}%
-                  </span>
+                <div className="p-2 bg-white rounded-xl border border-sky-200">
+                  <span className="text-[10px] text-sky-800 block font-bold">Maksimum</span>
+                  <span className="font-bold text-sky-950">{numericStats.max}</span>
                 </div>
-                <div className="p-2 bg-slate-900 rounded-xl">
-                  <span className="text-slate-400 block text-[11px]">Kattaroq yozuvlar:</span>
-                  <span className="text-slate-200 font-mono">{numericStats.higherCount} ta</span>
-                </div>
-                <div className="p-2 bg-slate-900 rounded-xl">
-                  <span className="text-slate-400 block text-[11px]">Kichikroq yozuvlar:</span>
-                  <span className="text-slate-200 font-mono">{numericStats.lowerCount} ta</span>
+                <div className="p-2 bg-white rounded-xl border border-sky-200">
+                  <span className="text-[10px] text-sky-800 block font-bold">Minimum</span>
+                  <span className="font-bold text-sky-950">{numericStats.min}</span>
                 </div>
               </div>
+
+              <p className="text-xs text-sky-950 font-medium">
+                Bu qiymat ustun o'rtacha qiymatidan{' '}
+                <strong className="text-sky-950 font-bold">
+                  {Number(numericStats.diffFromAvgPercent) >= 0 ? '+' : ''}
+                  {numericStats.diffFromAvgPercent}%
+                </strong>{' '}
+                farq qiladi. ({numericStats.higherCount} ta kattaroq, {numericStats.lowerCount} ta kichikroq qator mavjud).
+              </p>
             </div>
           )}
 
-          {/* List of other rows matching this cell value */}
-          <div>
-            <div className="flex items-center justify-between mb-2">
-              <h4 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
-                Shu qiymatga ega barcha yozuvlar ({matchingRows.length})
-              </h4>
+          {/* Action to filter */}
+          <div className="p-4 bg-sky-50 rounded-2xl border border-sky-200 flex items-center justify-between gap-3">
+            <div className="text-xs text-sky-950 font-medium">
+              Ushbu qiymat bo'yicha butun jadvalni filtrlashni xohlaysizmi?
             </div>
-
-            <div className="space-y-1.5 max-h-44 overflow-y-auto pr-1">
-              {matchingRows.map((r, idx) => (
-                <div
-                  key={r.id}
-                  className="p-2.5 bg-slate-950/70 hover:bg-slate-800/80 border border-slate-800/80 rounded-xl text-xs flex items-center justify-between transition"
-                >
-                  <div className="flex items-center gap-2 truncate">
-                    <span className="text-slate-500 font-mono text-[10px]">#{idx + 1}</span>
-                    <span className="text-slate-200 font-medium truncate">
-                      {table.columns
-                        .slice(0, 3)
-                        .map((c) => `${c.name}: ${r.values[c.key] || 'nomsiz'}`)
-                        .join(' • ')}
-                    </span>
-                  </div>
-                </div>
-              ))}
-            </div>
+            <button
+              onClick={() => {
+                onApplyAsFilter(columnKey, value);
+                onClose();
+              }}
+              className="px-3.5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-xs border border-sky-700 flex items-center gap-1.5 transition cursor-pointer shrink-0"
+            >
+              <Filter className="w-3.5 h-3.5 text-white" />
+              <span>Filtr sifatida qo'llash</span>
+            </button>
           </div>
         </div>
 
         {/* Modal Footer */}
-        <div className="p-4 bg-slate-950/80 border-t border-slate-800 flex items-center justify-end gap-2">
+        <div className="p-4 bg-sky-50 border-t border-sky-200 flex items-center justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-medium rounded-xl transition cursor-pointer"
+            className="px-4 py-2 bg-white hover:bg-sky-100 border border-sky-300 rounded-xl text-xs font-bold text-sky-900 transition cursor-pointer"
           >
             Yopish
           </button>
