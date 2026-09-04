@@ -76,7 +76,7 @@ export const EmptyState: React.FC<EmptyStateProps> = ({
           <div className="w-8 h-8 rounded-lg bg-sky-200 text-sky-800 border border-sky-300 flex items-center justify-center mb-2.5 font-bold">
             <FileSpreadsheet className="w-4 h-4" />
           </div>
-          <h4 className="text-xs font-bold text-sky-950 mb-1 font-mono">Excel & CSV Eksport</h4>
+          <h4 className="text-xs font-bold text-sky-950 mb-1 font-mono">Excel (.xlsx) Eksport</h4>
           <p className="text-[11px] text-sky-900 leading-relaxed font-medium">
             Barcha ma'lumotlarni to'liq Excel (.xlsx) formatida saqlang.
           </p>

@@ -8,7 +8,6 @@ import {
   Trash2,
   Edit2,
   Edit3,
-  Download,
   FileSpreadsheet,
   Calendar,
   Filter,
@@ -16,10 +15,13 @@ import {
 } from 'lucide-react';
 import { UserTable, TableRowData, ColumnFilter } from '../types';
 import { FilterBar } from './FilterBar';
+import { ColumnValueFilterDropdown } from './ColumnValueFilterDropdown';
 import { exportTableToExcel } from '../utils/excelExport';
+import { isRowMatchingAllFilters, hasActiveFilter } from '../utils/filterUtils';
 
 interface TableViewProps {
   table: UserTable;
+  originalTable?: UserTable;
   onAddRecord: () => void;
   onEditRecord: (row: TableRowData) => void;
   onDeleteRecord: (tableId: string, rowId: string) => void;
@@ -36,6 +38,7 @@ interface TableViewProps {
 
 export const TableView: React.FC<TableViewProps> = ({
   table,
+  originalTable,
   onAddRecord,
   onEditRecord,
   onDeleteRecord,
@@ -52,6 +55,12 @@ export const TableView: React.FC<TableViewProps> = ({
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
   const [showFilterBar, setShowFilterBar] = useState(true);
+  const [activeDropdownColumn, setActiveDropdownColumn] = useState<{
+    key: string;
+    rect: DOMRect;
+  } | null>(null);
+
+  const fullSourceTable = originalTable || table;
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -81,30 +90,9 @@ export const TableView: React.FC<TableViewProps> = ({
       );
     }
 
-    // 2. Specific Column Filters
+    // 2. Specific Column Filters (Names/substring, Dates, Prices, Checkboxes)
     if (filters.length > 0) {
-      result = result.filter((row) => {
-        return filters.every((f) => {
-          const rawVal = (row.values[f.columnKey] || '').trim();
-          const displayVal = !rawVal || rawVal.toLowerCase() === 'nomsiz' ? 'nomsiz' : rawVal;
-
-          // Check selected values (e.g. from dropdown checkbox)
-          if (f.selectedValues && f.selectedValues.length > 0) {
-            if (!f.selectedValues.includes(displayVal)) {
-              return false;
-            }
-          }
-
-          // Check text query
-          if (f.textQuery && f.textQuery.trim().length > 0) {
-            if (!displayVal.toLowerCase().includes(f.textQuery.trim().toLowerCase())) {
-              return false;
-            }
-          }
-
-          return true;
-        });
-      });
+      result = result.filter((row) => isRowMatchingAllFilters(row, filters));
     }
 
     // 3. Sorting
@@ -140,28 +128,7 @@ export const TableView: React.FC<TableViewProps> = ({
     }
   };
 
-  // Export to CSV
-  const handleExportCSV = () => {
-    if (table.rows.length === 0) return;
-
-    const headers = table.columns.map((c) => `"${c.name}"`).join(',');
-    const rowsCSV = filteredAndSortedRows.map((row) =>
-      table.columns
-        .map((col) => `"${(row.values[col.key] || '').replace(/"/g, '""')}"`)
-        .join(',')
-    );
-
-    const csvContent = 'data:text/csv;charset=utf-8,\uFEFF' + [headers, ...rowsCSV].join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `${table.name.replace(/\s+/g, '_')}_jadval.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const activeFiltersCount = filters.length;
+  const activeFiltersCount = filters.filter(hasActiveFilter).length;
 
   return (
     <div className="bg-white border border-sky-200 rounded-2xl shadow-sm overflow-hidden flex flex-col h-full space-y-3 font-mono text-sky-950">
@@ -240,17 +207,6 @@ export const TableView: React.FC<TableViewProps> = ({
             <span>Excel (.xlsx)</span>
           </button>
 
-          {/* Export CSV */}
-          <button
-            onClick={handleExportCSV}
-            disabled={table.rows.length === 0}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-sky-50 text-sky-900 border border-sky-300 text-xs font-bold rounded-xl transition cursor-pointer disabled:opacity-40"
-            title="CSV formatida yuklab olish"
-          >
-            <Download className="w-3.5 h-3.5 text-sky-700" />
-            <span className="hidden sm:inline">CSV</span>
-          </button>
-
           {/* Delete Table Button */}
           {!isReadOnly && (
             <button
@@ -276,11 +232,12 @@ export const TableView: React.FC<TableViewProps> = ({
         <div className="px-4">
           <FilterBar
             table={table}
+            originalTable={fullSourceTable}
             filters={filters}
             onFilterChange={onFiltersChange}
             onResetFilters={onResetFilters}
             filteredCount={filteredAndSortedRows.length}
-            totalCount={table.rows.length}
+            totalCount={fullSourceTable.rows.length}
           />
         </div>
       )}
@@ -300,7 +257,7 @@ export const TableView: React.FC<TableViewProps> = ({
 
         <div className="text-[11px] text-sky-900 flex items-center gap-1.5 font-mono font-semibold">
           <Info className="w-3.5 h-3.5 text-sky-700 shrink-0" />
-          <span>Katak ustiga bosib, uning tahlilini ochishingiz mumkin.</span>
+          <span>Ustun nomiga bosib, ichidagi ma'lumotlar (a, b...) bo'yicha saralang.</span>
         </div>
       </div>
 
@@ -340,55 +297,125 @@ export const TableView: React.FC<TableViewProps> = ({
         ) : (
           <table className="w-full text-left border-collapse text-xs">
             <thead>
-              <tr className="bg-sky-100/70 border-b border-sky-200 text-sky-950 font-black uppercase tracking-wider text-[11px] font-mono">
+              <tr className="bg-sky-100/80 border-b border-sky-200 text-sky-950 font-black uppercase tracking-wider text-[11px] font-mono">
                 {table.columns.map((col, cIdx) => {
                   const isSorted = sortKey === col.key;
-                  const hasColFilter = filters.some((f) => f.columnKey === col.key);
+                  const colFilter = filters.find((f) => f.columnKey === col.key);
+                  const isColFiltered = hasActiveFilter(colFilter);
+                  const selectedVals = colFilter?.selectedValues || [];
                   const isSystemCol = cIdx < 2;
 
                   return (
                     <th
                       key={col.id}
-                      onClick={() => handleSort(col.key)}
-                      className={`py-3 px-3 cursor-pointer hover:bg-sky-200/60 transition group select-none whitespace-nowrap ${
-                        cIdx === 0 ? 'w-14 text-center' : ''
-                      }`}
+                      className={`py-2.5 px-3 select-none whitespace-nowrap transition border-r border-sky-200/60 last:border-r-0 ${
+                        isColFiltered ? 'bg-sky-200/90 text-sky-950' : 'hover:bg-sky-200/60'
+                      } ${cIdx === 0 ? 'w-14 text-center' : ''}`}
                     >
-                      <div className={`flex items-center gap-2 ${cIdx === 0 ? 'justify-center' : 'justify-between'}`}>
-                        <div className="flex items-center gap-1.5">
-                          <span className={hasColFilter ? 'text-sky-800 font-black underline' : isSystemCol ? 'text-sky-950 font-black' : 'text-sky-950 font-bold'}>
+                      <div className={`flex items-center gap-1.5 ${cIdx === 0 ? 'justify-center' : 'justify-between'}`}>
+                        {/* Interactive Column Name - opens Distinct Values dropdown */}
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            const rect = e.currentTarget.getBoundingClientRect();
+                            setActiveDropdownColumn(
+                              activeDropdownColumn?.key === col.key ? null : { key: col.key, rect }
+                            );
+                          }}
+                          className="flex items-center gap-1.5 cursor-pointer text-left group/colbtn focus:outline-none"
+                          title="Ushbu ustun ichidagi ma'lumotlarni tanlash (filtr)"
+                        >
+                          <span
+                            className={`font-mono transition ${
+                              isColFiltered
+                                ? 'text-sky-950 font-black underline decoration-sky-600 underline-offset-2'
+                                : isSystemCol
+                                ? 'text-sky-950 font-black group-hover/colbtn:text-sky-700'
+                                : 'text-sky-900 font-bold group-hover/colbtn:text-sky-950'
+                            }`}
+                          >
                             {col.name}
                           </span>
-                          {hasColFilter && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-sky-600" />
-                          )}
-                          <span className="text-sky-700 group-hover:text-sky-950 transition">
-                            {isSorted ? (
-                              sortDirection === 'asc' ? (
-                                <ArrowUp className="w-3.5 h-3.5 text-sky-950" />
-                              ) : (
-                                <ArrowDown className="w-3.5 h-3.5 text-sky-950" />
-                              )
-                            ) : (
-                              <ArrowUpDown className="w-3 h-3 opacity-40 group-hover:opacity-100" />
-                            )}
-                          </span>
-                        </div>
 
-                        {!isReadOnly && onEditTable && !isSystemCol && (
+                          <div
+                            className={`p-1 rounded-md transition ${
+                              isColFiltered
+                                ? 'bg-sky-600 text-white shadow-xs'
+                                : 'text-sky-600 hover:bg-sky-200/80 group-hover/colbtn:text-sky-950'
+                            }`}
+                          >
+                            <Filter className="w-3 h-3" />
+                          </div>
+                        </button>
+
+                        <div className="flex items-center gap-1">
+                          {/* Sort Button */}
                           <button
                             type="button"
                             onClick={(e) => {
                               e.stopPropagation();
-                              onEditTable();
+                              handleSort(col.key);
                             }}
-                            className="opacity-0 group-hover:opacity-100 p-1 text-sky-900 hover:bg-sky-200 rounded transition cursor-pointer"
-                            title={`"${col.name}" ustunini tahrirlash yoki yangi ustun qo'shish`}
+                            className="text-sky-700 hover:text-sky-950 p-1 rounded hover:bg-sky-200/70 transition cursor-pointer"
+                            title="Saralash (A-Z / Z-A)"
                           >
-                            <Edit3 className="w-3 h-3" />
+                            {isSorted ? (
+                              sortDirection === 'asc' ? (
+                                <ArrowUp className="w-3.5 h-3.5 text-sky-950 stroke-[2.5]" />
+                              ) : (
+                                <ArrowDown className="w-3.5 h-3.5 text-sky-950 stroke-[2.5]" />
+                              )
+                            ) : (
+                              <ArrowUpDown className="w-3 h-3 opacity-40 hover:opacity-100" />
+                            )}
                           </button>
-                        )}
+
+                          {!isReadOnly && onEditTable && !isSystemCol && (
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onEditTable();
+                              }}
+                              className="opacity-0 group-hover:opacity-100 p-1 text-sky-900 hover:bg-sky-200 rounded transition cursor-pointer"
+                              title={`"${col.name}" ustunini tahrirlash`}
+                            >
+                              <Edit3 className="w-3 h-3" />
+                            </button>
+                          )}
+                        </div>
                       </div>
+
+                      {/* Filtered Values Badge inside Column Header */}
+                      {isColFiltered && selectedVals.length > 0 && (
+                        <div className="mt-1 flex items-center gap-1 font-normal lowercase">
+                          <span
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              setActiveDropdownColumn({ key: col.key, rect });
+                            }}
+                            className="text-[10px] bg-sky-700 text-white font-bold px-1.5 py-0.2 rounded font-mono shadow-xs truncate max-w-[130px] cursor-pointer hover:bg-sky-800"
+                            title={`Tanlanganlar: ${selectedVals.join(', ')}`}
+                          >
+                            {selectedVals.length === 1
+                              ? selectedVals[0]
+                              : `${selectedVals.length} ta: ${selectedVals.slice(0, 2).join(', ')}${selectedVals.length > 2 ? '...' : ''}`}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onFiltersChange(filters.filter((f) => f.columnKey !== col.key));
+                            }}
+                            className="text-sky-700 hover:text-red-700 font-black text-xs px-1 py-0.2 rounded hover:bg-sky-200 cursor-pointer"
+                            title="Filtrni tozalash"
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      )}
                     </th>
                   );
                 })}
@@ -472,6 +499,32 @@ export const TableView: React.FC<TableViewProps> = ({
           <span className="font-bold text-sky-900">Real-vaqt sinxronlangan</span>
         </div>
       </div>
+
+      {/* Column Value Filter Popover */}
+      {activeDropdownColumn && (
+        <ColumnValueFilterDropdown
+          column={table.columns.find((c) => c.key === activeDropdownColumn.key)!}
+          allRows={fullSourceTable.rows}
+          currentFilteredRows={filteredAndSortedRows}
+          currentFilter={filters.find((f) => f.columnKey === activeDropdownColumn.key)}
+          onFilterChange={(updated) => {
+            if (!updated) {
+              onFiltersChange(filters.filter((f) => f.columnKey !== activeDropdownColumn.key));
+            } else {
+              const others = filters.filter((f) => f.columnKey !== activeDropdownColumn.key);
+              onFiltersChange([...others, updated]);
+            }
+          }}
+          isOpen={true}
+          onClose={() => setActiveDropdownColumn(null)}
+          anchorRect={activeDropdownColumn.rect}
+          onSort={(dir) => {
+            setSortKey(activeDropdownColumn.key);
+            setSortDirection(dir);
+          }}
+          currentSort={sortKey === activeDropdownColumn.key ? sortDirection : null}
+        />
+      )}
     </div>
   );
 };

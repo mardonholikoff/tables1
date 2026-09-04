@@ -15,6 +15,7 @@ import {
   Cloud,
   Shield,
   Activity,
+  Sparkles,
 } from 'lucide-react';
 import { AuthUser, ViewMode } from '../types';
 import { SyncStatus } from '../firebase/config';
@@ -75,7 +76,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               </div>
             </div>
 
-            {/* Offline / Cloud Firebase Sync Status Badge */}
+            {/* Offline / Cloud Database Sync Status Badge */}
             <div className="hidden sm:flex items-center">
               {!isOnline ? (
                 <div
@@ -88,7 +89,7 @@ export const Navbar: React.FC<NavbarProps> = ({
               ) : hasPendingWrites ? (
                 <div
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-sky-200 text-sky-950 border border-sky-300 text-[11px] font-bold font-mono"
-                  title="O'zgarishlar Firebase bazasiga yuklanmoqda..."
+                  title="O'zgarishlar bazaga yuklanmoqda..."
                 >
                   <RefreshCw className="w-3 h-3 text-sky-800 animate-spin" />
                   <span>Sinxronlanmoqda...</span>
@@ -96,11 +97,11 @@ export const Navbar: React.FC<NavbarProps> = ({
               ) : (
                 <div
                   className="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white text-sky-900 border border-sky-300 text-[11px] font-bold shadow-xs font-mono"
-                  title="Google Firebase Firestore bilan to'liq sinxronlangan"
+                  title="Baza bilan to'liq sinxronlangan"
                 >
                   <span className="w-1.5 h-1.5 rounded-full bg-sky-600 animate-pulse" />
                   <Cloud className="w-3 h-3 text-sky-700" />
-                  <span>Firebase Jonli</span>
+                  <span>Baza Jonli</span>
                 </div>
               )}
             </div>
@@ -109,33 +110,37 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* View mode switcher (if tables exist) */}
           {hasTables && (
             <div className="hidden md:flex items-center p-1 bg-sky-200/80 rounded-xl border border-sky-300 text-xs shadow-xs font-mono">
-              <button
-                id="view-mode-split"
-                onClick={() => onViewModeChange('split')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition duration-150 cursor-pointer ${
-                  viewMode === 'split'
-                    ? 'bg-white text-sky-950 shadow-xs border border-sky-300'
-                    : 'text-sky-900 hover:bg-sky-100'
-                }`}
-                title="Jadval va Dashboard yonma-yon"
-              >
-                <Columns2 className="w-3.5 h-3.5" />
-                <span>Yonma-yon</span>
-              </button>
+              {!isReadOnly && (
+                <>
+                  <button
+                    id="view-mode-split"
+                    onClick={() => onViewModeChange('split')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition duration-150 cursor-pointer ${
+                      viewMode === 'split'
+                        ? 'bg-white text-sky-950 shadow-xs border border-sky-300'
+                        : 'text-sky-900 hover:bg-sky-100'
+                    }`}
+                    title="Jadval va Dashboard yonma-yon"
+                  >
+                    <Columns2 className="w-3.5 h-3.5" />
+                    <span>Yonma-yon</span>
+                  </button>
 
-              <button
-                id="view-mode-table"
-                onClick={() => onViewModeChange('table_only')}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition duration-150 cursor-pointer ${
-                  viewMode === 'table_only'
-                    ? 'bg-white text-sky-950 shadow-xs border border-sky-300'
-                    : 'text-sky-900 hover:bg-sky-100'
-                }`}
-                title="Faqat Jadval ko'rinishi"
-              >
-                <TableIcon className="w-3.5 h-3.5" />
-                <span>Jadval</span>
-              </button>
+                  <button
+                    id="view-mode-table"
+                    onClick={() => onViewModeChange('table_only')}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition duration-150 cursor-pointer ${
+                      viewMode === 'table_only'
+                        ? 'bg-white text-sky-950 shadow-xs border border-sky-300'
+                        : 'text-sky-900 hover:bg-sky-100'
+                    }`}
+                    title="Faqat Jadval ko'rinishi"
+                  >
+                    <TableIcon className="w-3.5 h-3.5" />
+                    <span>Jadval</span>
+                  </button>
+                </>
+              )}
 
               <button
                 id="view-mode-dashboard"
@@ -145,24 +150,24 @@ export const Navbar: React.FC<NavbarProps> = ({
                     ? 'bg-white text-sky-950 shadow-xs border border-sky-300'
                     : 'text-sky-900 hover:bg-sky-100'
                 }`}
-                title="Faqat Dashboard ko'rinishi"
+                title="Faqat Tahliliy Dashboard ko'rinishi"
               >
                 <BarChart3 className="w-3.5 h-3.5" />
                 <span>Dashboard</span>
               </button>
 
               <button
-                id="view-mode-overview"
-                onClick={() => onViewModeChange('overview')}
+                id="view-mode-insights"
+                onClick={() => onViewModeChange('insights')}
                 className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg font-bold transition duration-150 cursor-pointer ${
-                  viewMode === 'overview'
+                  viewMode === 'insights'
                     ? 'bg-white text-sky-950 shadow-xs border border-sky-300'
                     : 'text-sky-900 hover:bg-sky-100'
                 }`}
-                title="Barcha jadvallar statistikasi"
+                title="Jadvallararo qidiruv, o'zaro bog'liqliklar va korrelyatsiyalar"
               >
-                <LayoutGrid className="w-3.5 h-3.5" />
-                <span>Umumiy</span>
+                <Sparkles className="w-3.5 h-3.5 text-sky-600" />
+                <span>Insaytlar</span>
               </button>
             </div>
           )}

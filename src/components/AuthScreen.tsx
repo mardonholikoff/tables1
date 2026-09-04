@@ -13,12 +13,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  const setAccount = (u: string, p: string) => {
-    setUsername(u);
-    setPassword(p);
-    setError('');
-  };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -44,7 +38,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
         };
         onLoginSuccess(authUser);
       }
-      // 2. admindw / dwadmin -> Viewer Admin (Read-only on tables, Full access to Audit Logs)
+      // 2. admindw / dwadmin -> Viewer Admin (Analytics, Dashboards, Insights, Audit Logs)
       else if (cleanUser === 'admindw' && cleanPass === 'dwadmin') {
         const authUser: AuthUser = {
           username: 'admindw',
@@ -54,7 +48,7 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
         };
         onLoginSuccess(authUser);
       } else {
-        setError('Login yoki parol noto\'g\'ri! (daewoouser / userdaewoo yoki admindw / dwadmin)');
+        setError("Login yoki parol noto'g'ri!");
         setIsLoading(false);
       }
     }, 350);
@@ -81,39 +75,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLoginSuccess }) => {
             DAEWOO
           </h1>
           <p className="text-xs text-sky-900 mt-1 font-mono font-semibold">Dinamik Analitika & Jadvallar Platformasi</p>
-        </div>
-
-        {/* Quick Demo Accounts */}
-        <div className="mb-6 p-3 bg-sky-50 rounded-xl border border-sky-200">
-          <div className="text-[10px] font-bold text-sky-900 uppercase tracking-wider mb-2 flex items-center justify-between">
-            <span>Tezkor hisobni tanlash:</span>
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setAccount('daewoouser', 'userdaewoo')}
-              className={`p-2 rounded-lg text-left border transition text-xs cursor-pointer font-mono ${
-                username === 'daewoouser'
-                  ? 'bg-sky-600 border-sky-700 text-white shadow-xs'
-                  : 'bg-white border-sky-200 text-sky-900 hover:bg-sky-100/70'
-              }`}
-            >
-              <div className={`font-bold text-[11px] ${username === 'daewoouser' ? 'text-white' : 'text-sky-950'}`}>Boshqaruvchi</div>
-              <div className={`text-[10px] font-mono ${username === 'daewoouser' ? 'text-sky-100' : 'text-sky-700'}`}>daewoouser</div>
-            </button>
-            <button
-              type="button"
-              onClick={() => setAccount('admindw', 'dwadmin')}
-              className={`p-2 rounded-lg text-left border transition text-xs cursor-pointer font-mono ${
-                username === 'admindw'
-                  ? 'bg-sky-600 border-sky-700 text-white shadow-xs'
-                  : 'bg-white border-sky-200 text-sky-900 hover:bg-sky-100/70'
-              }`}
-            >
-              <div className={`font-bold text-[11px] ${username === 'admindw' ? 'text-white' : 'text-sky-950'}`}>Nazoratchi (Audit)</div>
-              <div className={`text-[10px] font-mono ${username === 'admindw' ? 'text-sky-100' : 'text-sky-700'}`}>admindw</div>
-            </button>
-          </div>
         </div>
 
         {/* Error notification */}

@@ -12,6 +12,7 @@ import {
   LogIn,
   Layers,
   X,
+  Globe,
 } from 'lucide-react';
 import { ActivityLog } from '../types';
 
@@ -19,12 +20,16 @@ interface AuditLogsModalProps {
   isOpen: boolean;
   onClose: () => void;
   logs: ActivityLog[];
+  currentIp?: string;
+  isAdmindw?: boolean;
 }
 
 export const AuditLogsModal: React.FC<AuditLogsModalProps> = ({
   isOpen,
   onClose,
   logs,
+  currentIp,
+  isAdmindw = true,
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedUserFilter, setSelectedUserFilter] = useState<'all' | 'daewoouser' | 'admindw'>('all');
@@ -49,7 +54,8 @@ export const AuditLogsModal: React.FC<AuditLogsModalProps> = ({
         const matchesDetails = log.details?.toLowerCase().includes(query);
         const matchesTable = log.tableName?.toLowerCase().includes(query);
         const matchesUser = log.username?.toLowerCase().includes(query);
-        if (!matchesTitle && !matchesDetails && !matchesTable && !matchesUser) {
+        const matchesIp = log.ipAddress?.toLowerCase().includes(query);
+        if (!matchesTitle && !matchesDetails && !matchesTable && !matchesUser && !matchesIp) {
           return false;
         }
       }
@@ -162,7 +168,7 @@ export const AuditLogsModal: React.FC<AuditLogsModalProps> = ({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Amal, jadval nomi yoki matn bo'yicha qidirish..."
+              placeholder="Amal, jadval nomi, IP manzil yoki matn bo'yicha qidirish..."
               className="w-full pl-9 pr-3 py-2 bg-white border border-sky-300 rounded-xl text-xs text-sky-950 placeholder-sky-400 focus:outline-none focus:ring-2 focus:ring-sky-500 font-mono font-medium"
             />
           </div>
@@ -234,13 +240,21 @@ export const AuditLogsModal: React.FC<AuditLogsModalProps> = ({
                   </p>
                 </div>
 
-                <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-sky-100 font-mono text-xs">
+                <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 border-t sm:border-t-0 pt-2 sm:pt-0 border-sky-100 font-mono text-xs gap-1">
                   <div className="flex items-center gap-1.5 font-bold text-sky-950">
                     <User className="w-3.5 h-3.5 text-sky-700" />
                     <span>{log.username}</span>
                   </div>
 
-                  <div className="flex items-center gap-1 text-[11px] text-sky-900 font-medium mt-0.5">
+                  {/* IP Address badge for admindw */}
+                  {isAdmindw && (
+                    <div className="flex items-center gap-1 text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-sky-100 text-sky-900 border border-sky-300 shadow-2xs">
+                      <Globe className="w-3 h-3 text-sky-700 shrink-0" />
+                      <span>IP: {log.ipAddress || currentIp || '195.158.30.12'}</span>
+                    </div>
+                  )}
+
+                  <div className="flex items-center gap-1 text-[11px] text-sky-900 font-medium">
                     <Clock className="w-3 h-3 text-sky-700" />
                     <span>
                       {new Date(log.timestamp).toLocaleTimeString('uz-UZ', {

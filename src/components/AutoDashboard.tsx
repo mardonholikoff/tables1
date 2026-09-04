@@ -27,7 +27,7 @@ import {
   SlidersHorizontal,
   Wand2,
 } from 'lucide-react';
-import { UserTable } from '../types';
+import { UserTable, ColumnFilter } from '../types';
 import {
   computeTableAnalytics,
   CHART_COLORS,
@@ -41,6 +41,8 @@ import { RadarProfileChart } from './RadarProfileChart';
 import { MathStatisticsView } from './MathStatisticsView';
 import { TopBottomRankingView } from './TopBottomRankingView';
 import { CorrelationScatterChart } from './CorrelationScatterChart';
+import { FilterBar } from './FilterBar';
+import { hasActiveFilter } from '../utils/filterUtils';
 
 interface AutoDashboardProps {
   table: UserTable;
@@ -48,6 +50,8 @@ interface AutoDashboardProps {
   isFiltered?: boolean;
   onClearFilters?: () => void;
   onSelectCellInspector?: (columnKey: string, columnName: string, val: string) => void;
+  filters?: ColumnFilter[];
+  onFiltersChange?: (filters: ColumnFilter[]) => void;
 }
 
 export const AutoDashboard: React.FC<AutoDashboardProps> = ({
@@ -56,7 +60,12 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
   isFiltered = false,
   onClearFilters,
   onSelectCellInspector,
+  filters = [],
+  onFiltersChange,
 }) => {
+  // Always show data filter bar by default so users can filter table data immediately
+  const [showDashboardFilterBar, setShowDashboardFilterBar] = useState<boolean>(true);
+
   // Selected columns for dashboard calculation/focus
   const [selectedColumnKeys, setSelectedColumnKeys] = useState<string[]>(() =>
     table.columns.map((c) => c.key)
@@ -164,16 +173,56 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
           </div>
         </div>
 
-        {isFiltered && onClearFilters && (
-          <button
-            onClick={onClearFilters}
-            className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-sky-50 text-sky-900 text-xs font-bold rounded-xl border border-sky-300 transition cursor-pointer shadow-xs"
-          >
-            <RotateCcw className="w-3.5 h-3.5 text-sky-700" />
-            <span>Filtrni bekor qilish</span>
-          </button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {onFiltersChange && (
+            <button
+              onClick={() => setShowDashboardFilterBar(!showDashboardFilterBar)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold rounded-xl border transition cursor-pointer shadow-xs ${
+                filters.some(hasActiveFilter)
+                  ? 'bg-sky-600 text-white border-sky-700'
+                  : showDashboardFilterBar
+                  ? 'bg-sky-100 text-sky-950 border-sky-300 hover:bg-sky-200'
+                  : 'bg-white hover:bg-sky-50 text-sky-900 border-sky-300'
+              }`}
+              title="Jadval ma'lumotlari (nomlar, sana, narxlar) bo'yicha filtr paneli"
+            >
+              <Filter className="w-3.5 h-3.5" />
+              <span>{showDashboardFilterBar ? "Ma'lumotlar filtrini yopish" : "Ma'lumotlar bo'yicha filtr"}</span>
+              {filters.filter(hasActiveFilter).length > 0 && (
+                <span className="w-4 h-4 rounded-full bg-white text-sky-800 text-[10px] font-black flex items-center justify-center">
+                  {filters.filter(hasActiveFilter).length}
+                </span>
+              )}
+            </button>
+          )}
+
+          {isFiltered && onClearFilters && (
+            <button
+              onClick={onClearFilters}
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-white hover:bg-sky-50 text-sky-900 text-xs font-bold rounded-xl border border-sky-300 transition cursor-pointer shadow-xs"
+            >
+              <RotateCcw className="w-3.5 h-3.5 text-sky-700" />
+              <span>Filtrni bekor qilish</span>
+            </button>
+          )}
+        </div>
       </div>
+
+      {/* Embedded Smart Filter Bar in Dashboard */}
+      {showDashboardFilterBar && onFiltersChange && (
+        <FilterBar
+          table={table}
+          originalTable={originalTable}
+          filters={filters}
+          onFilterChange={onFiltersChange}
+          onResetFilters={onClearFilters || (() => {})}
+          filteredCount={table.rows.length}
+          totalCount={originalTable.rows.length}
+          title="Dashboard Ma'lumotlari Bo'yicha Filtr"
+          subtitle="Ustun nomiga bosib, undagi ma'lumotlar (a, b...) bo'yicha saralang — dashboarddagi barcha grafik va hisob-kitoblar faqat ushbu tanlangan ma'lumotlar asosida hisoblanadi"
+          isDashboardMode={true}
+        />
+      )}
 
       {/* Analytical Instruments Selector Bar */}
       <InstrumentsSelectorBar
@@ -186,7 +235,7 @@ export const AutoDashboard: React.FC<AutoDashboardProps> = ({
         <div className="flex items-center justify-between gap-2 mb-2 pb-1.5 border-b border-sky-200">
           <div className="flex items-center gap-1.5 text-xs font-bold text-sky-950 font-mono">
             <SlidersHorizontal className="w-3.5 h-3.5 text-sky-700" />
-            <span>Tahlil Qilinadigan Ustunlar ({activeColumns.length}/{table.columns.length}):</span>
+            <span>Grafiklarda Ko'rsatiladigan Ustunlar ({activeColumns.length}/{table.columns.length}):</span>
           </div>
           {activeColumns.length < table.columns.length && (
             <button

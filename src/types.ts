@@ -35,6 +35,7 @@ export interface ActivityLog {
   timestamp: string;
   username: string;
   userRole?: UserRole;
+  ipAddress?: string;
   actionType: 'create_table' | 'edit_table' | 'add_row' | 'edit_row' | 'delete_row' | 'delete_table' | 'clear_all' | 'login' | 'logout' | 'export_csv' | 'export_excel';
   actionTitle: string;
   tableName?: string;
@@ -42,14 +43,16 @@ export interface ActivityLog {
   details?: string;
 }
 
-export type ViewMode = 'split' | 'table_only' | 'dashboard_only' | 'overview';
+export type ViewMode = 'split' | 'table_only' | 'dashboard_only' | 'insights';
 
 export interface ColumnFilter {
   columnKey: string;
-  selectedValues: string[]; // specific values selected
-  textQuery?: string; // sub-string search
-  numericMin?: number;
-  numericMax?: number;
+  selectedValues?: string[]; // specific values selected (checkboxes)
+  textQuery?: string; // sub-string search (e.g. "kolodka")
+  numericMin?: number | null; // Narx / son minimal qiymati
+  numericMax?: number | null; // Narx / son maksimal qiymati
+  dateExact?: string; // Aniq sana (YYYY-MM-DD)
+  datePreset?: 'all' | 'today' | 'yesterday' | 'this_week' | 'this_month'; // Sana tezkori
 }
 
 export interface CellInspection {

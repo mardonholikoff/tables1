@@ -21,18 +21,39 @@ import { EditRecordModal } from './components/EditRecordModal';
 import { TableView } from './components/TableView';
 import { AutoDashboard } from './components/AutoDashboard';
 import { GlobalDashboardOverview } from './components/GlobalDashboardOverview';
+import { CrossTableInsightsView } from './components/CrossTableInsightsView';
 import { CellInspectorModal } from './components/CellInspectorModal';
 import { DeleteConfirmModal } from './components/DeleteConfirmModal';
 import { AuditLogsModal } from './components/AuditLogsModal';
-import { Table as TableIcon, Plus, Trash2, Edit3, WifiOff } from 'lucide-react';
+import { Table as TableIcon, Plus, Trash2, Edit3, WifiOff, BarChart3 } from 'lucide-react';
+import { isRowMatchingAllFilters } from './utils/filterUtils';
+import { fetchClientIp } from './utils/ipService';
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(() => getSavedAuth());
   const [tables, setTables] = useState<UserTable[]>(() => getSavedTables());
   const [selectedTableId, setSelectedTableId] = useState<string>('');
-  const [viewMode, setViewMode] = useState<ViewMode>('split');
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    const saved = getSavedAuth();
+    return saved?.role === 'viewer' ? 'dashboard_only' : 'split';
+  });
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [isAuditLogsOpen, setIsAuditLogsOpen] = useState(false);
+  const [clientIp, setClientIp] = useState<string>('192.168.1.1');
+
+  // Fetch client public IP for admindw audit logs
+  useEffect(() => {
+    fetchClientIp().then((ip) => {
+      if (ip) setClientIp(ip);
+    });
+  }, []);
+
+  // Ensure admindw always stays in analytical views (dashboard_only or insights)
+  useEffect(() => {
+    if (currentUser?.role === 'viewer' && viewMode !== 'dashboard_only' && viewMode !== 'insights') {
+      setViewMode('dashboard_only');
+    }
+  }, [currentUser, viewMode]);
 
   // Firebase sync & Network state
   const [syncStatus, setSyncStatus] = useState<SyncStatus>({
@@ -169,6 +190,7 @@ export default function App() {
       timestamp: new Date().toISOString(),
       username: currentUser.username,
       userRole: currentUser.role,
+      ipAddress: clientIp,
       actionType,
       actionTitle,
       tableName,
@@ -187,7 +209,10 @@ export default function App() {
   const handleLoginSuccess = (user: AuthUser) => {
     setCurrentUser(user);
     saveAuth(user);
-    trackAction('login', `Foydalanuvchi tizimga kirdi`, undefined, undefined, `Rol: ${user.role}`);
+    if (user.role === 'viewer') {
+      setViewMode('dashboard_only');
+    }
+    trackAction('login', `Foydalanuvchi tizimga kirdi`, undefined, undefined, `Rol: ${user.role} | IP: ${clientIp}`);
   };
 
   const handleLogout = () => {
@@ -214,20 +239,9 @@ export default function App() {
     if (!currentTable) return null;
     if (currentFilters.length === 0) return currentTable;
 
-    const filteredRows = currentTable.rows.filter((row) => {
-      return currentFilters.every((filter) => {
-        if (!filter.selectedValues || filter.selectedValues.length === 0) return true;
-        const cellValue = row.values[filter.columnKey] || '';
-        const isNomsiz = !cellValue || cellValue.toLowerCase() === 'nomsiz';
-
-        return filter.selectedValues.some((selectedVal) => {
-          if (selectedVal.toLowerCase() === 'nomsiz') {
-            return isNomsiz;
-          }
-          return cellValue.trim().toLowerCase() === selectedVal.trim().toLowerCase();
-        });
-      });
-    });
+    const filteredRows = currentTable.rows.filter((row) =>
+      isRowMatchingAllFilters(row, currentFilters)
+    );
 
     return {
       ...currentTable,
@@ -485,7 +499,7 @@ export default function App() {
           <div className="flex items-center gap-2 max-w-4xl mx-auto">
             <WifiOff className="w-4 h-4 text-sky-800 shrink-0" />
             <span>
-              <strong>Offlayn rejimdasiz:</strong> Barcha kiritilgan va tahrirlangan ma'lumotlar qurilmangizda saqlanadi. Internet ulanganda Google Firebase bilan avtomatik sinxronlanadi.
+              <strong>Offlayn rejimdasiz:</strong> Barcha kiritilgan va tahrirlangan ma'lumotlar qurilmangizda saqlanadi. Internet ulanganda baza bilan avtomatik sinxronlanadi.
             </span>
           </div>
         </div>
@@ -499,31 +513,23 @@ export default function App() {
             onOpenCreateTable={() => setIsCreateTableOpen(true)}
             isReadOnly={isReadOnly}
           />
-        ) : viewMode === 'overview' ? (
-          /* Global Overview across all tables */
-          <GlobalDashboardOverview
+        ) : viewMode === 'insights' ? (
+          /* Cross-Table Insights & Multi-Table Analytics / Search */
+          <CrossTableInsightsView
             tables={tables}
-            onSelectTable={(tableId, mode) => {
+            onSelectTable={(tableId) => {
               setSelectedTableId(tableId);
-              setViewMode(mode || 'split');
+              setViewMode(isReadOnly ? 'dashboard_only' : 'split');
             }}
-            onOpenCreateTable={() => setIsCreateTableOpen(true)}
-            onOpenAddRecord={(tableId) => {
-              if (tableId) setSelectedTableId(tableId);
-              setIsAddRecordOpen(true);
+            onInspectCell={(colKey, colName, val, rIdx, tableId) => {
+              setActiveCellInspection({
+                tableId,
+                columnKey: colKey,
+                columnName: colName,
+                value: val,
+                rowIndex: rIdx,
+              });
             }}
-            onRequestDeleteTable={(table) =>
-              setDeleteModalState({
-                isOpen: true,
-                type: 'table',
-                targetTable: table,
-              })
-            }
-            onEditTable={(table) => {
-              setEditingTable(table);
-              setIsEditTableOpen(true);
-            }}
-            onExportExcelLogged={handleExportExcelLogged}
             isReadOnly={isReadOnly}
           />
         ) : (
@@ -602,46 +608,147 @@ export default function App() {
                     <span className="hidden sm:inline">Jadvalni o'chirish</span>
                   </button>
                 )}
+
+                {isReadOnly && (
+                  <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-sky-300 text-sky-900 text-xs font-mono font-bold shadow-xs">
+                    <BarChart3 className="w-3.5 h-3.5 text-sky-700" />
+                    <span>Tahliliy Dashboard & Analitika</span>
+                  </div>
+                )}
               </div>
             </div>
 
             {/* Mobile View Mode Switcher */}
-            <div className="flex md:hidden items-center justify-between p-1.5 bg-white rounded-xl border border-sky-300 text-xs font-mono shadow-xs">
-              <button
-                onClick={() => setViewMode('split')}
-                className={`flex-1 py-1.5 text-center font-bold rounded-lg ${
-                  viewMode === 'split' ? 'bg-sky-600 text-white shadow-xs' : 'text-sky-900'
-                }`}
-              >
-                Yonma-yon
-              </button>
-              <button
-                onClick={() => setViewMode('table_only')}
-                className={`flex-1 py-1.5 text-center font-bold rounded-lg ${
-                  viewMode === 'table_only' ? 'bg-sky-600 text-white shadow-xs' : 'text-sky-900'
-                }`}
-              >
-                Jadval
-              </button>
+            <div className="flex md:hidden items-center gap-1 p-1 bg-white rounded-xl border border-sky-300 text-xs font-mono shadow-xs overflow-x-auto custom-scrollbar">
+              {!isReadOnly && (
+                <>
+                  <button
+                    onClick={() => setViewMode('split')}
+                    className={`px-3 py-1.5 text-center font-bold rounded-lg whitespace-nowrap ${
+                      viewMode === 'split' ? 'bg-sky-600 text-white shadow-xs' : 'text-sky-900'
+                    }`}
+                  >
+                    Yonma-yon
+                  </button>
+                  <button
+                    onClick={() => setViewMode('table_only')}
+                    className={`px-3 py-1.5 text-center font-bold rounded-lg whitespace-nowrap ${
+                      viewMode === 'table_only' ? 'bg-sky-600 text-white shadow-xs' : 'text-sky-900'
+                    }`}
+                  >
+                    Jadval
+                  </button>
+                </>
+              )}
               <button
                 onClick={() => setViewMode('dashboard_only')}
-                className={`flex-1 py-1.5 text-center font-bold rounded-lg ${
+                className={`px-3 py-1.5 text-center font-bold rounded-lg whitespace-nowrap ${
                   viewMode === 'dashboard_only' ? 'bg-sky-600 text-white shadow-xs' : 'text-sky-900'
                 }`}
               >
                 Dashboard
+              </button>
+              <button
+                onClick={() => setViewMode('insights')}
+                className={`px-3 py-1.5 text-center font-bold rounded-lg whitespace-nowrap ${
+                  viewMode === 'insights' ? 'bg-sky-600 text-white shadow-xs' : 'text-sky-900'
+                }`}
+              >
+                Insaytlar
               </button>
             </div>
 
             {/* Main Views Container */}
             {currentTable && filteredTable && (
               <div>
-                {viewMode === 'split' && (
-                  <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
-                    {/* Left: Table View (6/12 on wide) */}
-                    <div className="xl:col-span-6">
+                {/* admindw (viewer): exclusively show the comprehensive analytical dashboard */}
+                {isReadOnly ? (
+                  <div className="w-full">
+                    <AutoDashboard
+                      table={filteredTable}
+                      originalTable={currentTable}
+                      isFiltered={currentFilters.length > 0}
+                      filters={currentFilters}
+                      onFiltersChange={(newFilters) => handleUpdateFilters(currentTable.id, newFilters)}
+                      onClearFilters={() => handleResetFilters(currentTable.id)}
+                      onSelectCellInspector={(colKey, colName, val) => {
+                        setActiveCellInspection({
+                          tableId: currentTable.id,
+                          columnKey: colKey,
+                          columnName: colName,
+                          value: val,
+                          rowIndex: 0,
+                        });
+                      }}
+                    />
+                  </div>
+                ) : (
+                  <>
+                    {viewMode === 'split' && (
+                      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+                        {/* Left: Table View (6/12 on wide) */}
+                        <div className="xl:col-span-6">
+                          <TableView
+                            table={currentTable}
+                            originalTable={currentTable}
+                            onAddRecord={() => setIsAddRecordOpen(true)}
+                            onEditRecord={(row) => setEditingRow({ table: currentTable, row })}
+                            onDeleteRecord={handleDeleteRecord}
+                            onRequestDeleteTable={(t) =>
+                              setDeleteModalState({
+                                isOpen: true,
+                                type: 'table',
+                                targetTable: t,
+                              })
+                            }
+                            onEditTable={() => {
+                              setEditingTable(currentTable);
+                              setIsEditTableOpen(true);
+                            }}
+                            onExportExcelLogged={handleExportExcelLogged}
+                            onInspectCell={(colKey, colName, val, rIdx) => {
+                              setActiveCellInspection({
+                                tableId: currentTable.id,
+                                columnKey: colKey,
+                                columnName: colName,
+                                value: val,
+                                rowIndex: rIdx,
+                              });
+                            }}
+                            filters={currentFilters}
+                            onFiltersChange={(newFilters) => handleUpdateFilters(currentTable.id, newFilters)}
+                            onResetFilters={() => handleResetFilters(currentTable.id)}
+                            isReadOnly={isReadOnly}
+                          />
+                        </div>
+
+                        {/* Right: Dynamic Dashboard (6/12 on wide) */}
+                        <div className="xl:col-span-6">
+                          <AutoDashboard
+                            table={filteredTable}
+                            originalTable={currentTable}
+                            isFiltered={currentFilters.length > 0}
+                            filters={currentFilters}
+                            onFiltersChange={(newFilters) => handleUpdateFilters(currentTable.id, newFilters)}
+                            onClearFilters={() => handleResetFilters(currentTable.id)}
+                            onSelectCellInspector={(colKey, colName, val) => {
+                              setActiveCellInspection({
+                                tableId: currentTable.id,
+                                columnKey: colKey,
+                                columnName: colName,
+                                value: val,
+                                rowIndex: 0,
+                              });
+                            }}
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {viewMode === 'table_only' && (
                       <TableView
                         table={currentTable}
+                        originalTable={currentTable}
                         onAddRecord={() => setIsAddRecordOpen(true)}
                         onEditRecord={(row) => setEditingRow({ table: currentTable, row })}
                         onDeleteRecord={handleDeleteRecord}
@@ -671,81 +778,30 @@ export default function App() {
                         onResetFilters={() => handleResetFilters(currentTable.id)}
                         isReadOnly={isReadOnly}
                       />
-                    </div>
+                    )}
 
-                    {/* Right: Dynamic Auto Dashboard (6/12 on wide) */}
-                    <div className="xl:col-span-6">
-                      <AutoDashboard
-                        table={filteredTable}
-                        originalTable={currentTable}
-                        isFiltered={currentFilters.length > 0}
-                        onClearFilters={() => handleResetFilters(currentTable.id)}
-                        onSelectCellInspector={(colKey, colName, val) => {
-                          setActiveCellInspection({
-                            tableId: currentTable.id,
-                            columnKey: colKey,
-                            columnName: colName,
-                            value: val,
-                            rowIndex: 0,
-                          });
-                        }}
-                      />
-                    </div>
-                  </div>
-                )}
-
-                {viewMode === 'table_only' && (
-                  <TableView
-                    table={currentTable}
-                    onAddRecord={() => setIsAddRecordOpen(true)}
-                    onEditRecord={(row) => setEditingRow({ table: currentTable, row })}
-                    onDeleteRecord={handleDeleteRecord}
-                    onRequestDeleteTable={(t) =>
-                      setDeleteModalState({
-                        isOpen: true,
-                        type: 'table',
-                        targetTable: t,
-                      })
-                    }
-                    onEditTable={() => {
-                      setEditingTable(currentTable);
-                      setIsEditTableOpen(true);
-                    }}
-                    onExportExcelLogged={handleExportExcelLogged}
-                    onInspectCell={(colKey, colName, val, rIdx) => {
-                      setActiveCellInspection({
-                        tableId: currentTable.id,
-                        columnKey: colKey,
-                        columnName: colName,
-                        value: val,
-                        rowIndex: rIdx,
-                      });
-                    }}
-                    filters={currentFilters}
-                    onFiltersChange={(newFilters) => handleUpdateFilters(currentTable.id, newFilters)}
-                    onResetFilters={() => handleResetFilters(currentTable.id)}
-                    isReadOnly={isReadOnly}
-                  />
-                )}
-
-                {viewMode === 'dashboard_only' && (
-                  <div className="max-w-5xl mx-auto">
-                    <AutoDashboard
-                      table={filteredTable}
-                      originalTable={currentTable}
-                      isFiltered={currentFilters.length > 0}
-                      onClearFilters={() => handleResetFilters(currentTable.id)}
-                      onSelectCellInspector={(colKey, colName, val) => {
-                        setActiveCellInspection({
-                          tableId: currentTable.id,
-                          columnKey: colKey,
-                          columnName: colName,
-                          value: val,
-                          rowIndex: 0,
-                        });
-                      }}
-                    />
-                  </div>
+                    {viewMode === 'dashboard_only' && (
+                      <div className="w-full">
+                        <AutoDashboard
+                          table={filteredTable}
+                          originalTable={currentTable}
+                          isFiltered={currentFilters.length > 0}
+                          filters={currentFilters}
+                          onFiltersChange={(newFilters) => handleUpdateFilters(currentTable.id, newFilters)}
+                          onClearFilters={() => handleResetFilters(currentTable.id)}
+                          onSelectCellInspector={(colKey, colName, val) => {
+                            setActiveCellInspection({
+                              tableId: currentTable.id,
+                              columnKey: colKey,
+                              columnName: colName,
+                              value: val,
+                              rowIndex: 0,
+                            });
+                          }}
+                        />
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             )}
@@ -800,6 +856,8 @@ export default function App() {
           isOpen={isAuditLogsOpen}
           onClose={() => setIsAuditLogsOpen(false)}
           logs={logs}
+          currentIp={clientIp}
+          isAdmindw={true}
         />
       )}
 
